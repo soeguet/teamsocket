@@ -29,7 +29,7 @@ You need Java 17 installed on your machine to build and run the project. After c
 This will compile the code, run the tests, and package the application. Once the build process is completed, you can run the application with the following command:
 
 ```bash
-java -jar target/teamsocket-1.0-SNAPSHOT.jar
+java -jar target/teamsocket-1.0.jar
 ```
 
 (Please replace `teamsocket-1.0-SNAPSHOT.jar` with your actual jar file name if it's different.)
