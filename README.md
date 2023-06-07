@@ -32,7 +32,7 @@ This will compile the code, run the tests, and package the application. Once the
 java -jar target/teamsocket-1.0.jar
 ```
 
-(Please replace `teamsocket-1.0-SNAPSHOT.jar` with your actual jar file name if it's different.)
+(Please replace `teamsocket-1.0.jar` with your actual jar file name if it's different.)
 
 Since all messages are persisted in a PostgreSQL Database, you will need one as well. Easiest way would be to use Docker. You can run the following command to start a PostgreSQL container:
 

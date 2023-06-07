@@ -273,6 +273,7 @@ public class NoGuiServer extends WebSocketServer {
   @Override
   public void onError(WebSocket conn, Exception ex) {
     log.info("an error occurred on connection " + conn.getRemoteSocketAddress() + ":" + ex);
+    log.info("server might be running already!");
     log.info("ex.getStackTrace() = " + Arrays.toString(ex.getStackTrace()));
   }
 
