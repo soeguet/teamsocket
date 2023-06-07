@@ -37,4 +37,4 @@ build/
 ### Mac OS ###
 .DS_Store
 /.idea/
-/.mvn/
+dependency-reduced-pom.xml
