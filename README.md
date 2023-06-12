@@ -13,7 +13,7 @@ The TeamSocket project is built on the Java-WebSocket from TooTallNate. You can 
 Here is a list of main technologies and dependencies used in this project:
 
 - [Java 17](https://openjdk.java.net/projects/jdk/17/)
-- [Maven 4](https://maven.apache.org/)
+- [Maven 3](https://maven.apache.org/)
 - [Java-WebSocket 1.5.3](https://github.com/TooTallNate/Java-WebSocket)
 - [PostgreSQL JDBC Driver 42.6.0](https://jdbc.postgresql.org/)
 - [Jackson Core, Databind, Annotations 2.15.2](https://github.com/FasterXML/jackson)
