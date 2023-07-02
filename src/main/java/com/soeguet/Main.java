@@ -9,6 +9,6 @@ public class Main {
 
   public static void main(String[] args) {
     logger.info("Starting server...");
-    new NoGuiServer("localhost", 8100);
+    new NoGuiServer("127.0.0.1", 8100);
   }
 }

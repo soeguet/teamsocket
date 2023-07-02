@@ -10,6 +10,7 @@ public class MessageModel {
     private Long id;
     private byte messageType;
     private List<UserInteraction> userInteractions;
+    private String localIp;
     private String sender;
     private String time;
     private String message;
@@ -18,24 +19,25 @@ public class MessageModel {
     private String quotedMessageText;
 
     public MessageModel(String sender, String message) {
-        this((byte) 0, sender, message, null, null, null);
+        this((byte) 0,null, sender, message, null, null, null);
     }
 
 
     public MessageModel(Long id) {
-        this(id, (byte)127, null, null, null, "delete by user", null, null, null);
+        this(id, (byte) 127,null, null, null, null, "delete by user", null, null, null);
     }
 
     public MessageModel(byte messageType, String sender, String message) {
-        this(messageType, sender, message, null, null, null);
+        this(messageType,null, sender, message, null, null, null);
     }
 
     public MessageModel(String sender, String message, String quotedMessageSender, String quotedMessageTime, String quotedMessageText) {
-        this((byte) 0, sender, message, quotedMessageSender, quotedMessageTime, quotedMessageText);
+        this((byte) 0, null,sender, message, quotedMessageSender, quotedMessageTime, quotedMessageText);
     }
 
-    public MessageModel(byte messageType, String sender, String message, String quotedMessageSender, String quotedMessageTime, String quotedMessageText) {
+    public MessageModel(byte messageType,String localIp, String sender, String message, String quotedMessageSender, String quotedMessageTime, String quotedMessageText) {
 
+        this.localIp = localIp;
         this.sender = sender;
         this.time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
         this.message = message;
@@ -47,7 +49,7 @@ public class MessageModel {
     }
 
     //for updating messages
-    public MessageModel(Long id, byte messageType, List<UserInteraction> userInteractions, String sender, String time, String message, String quotedMessageSender, String quotedMessageTime, String quotedMessageText) {
+    public MessageModel(Long id, byte messageType, List<UserInteraction> userInteractions,String localIp, String sender, String time, String message, String quotedMessageSender, String quotedMessageTime, String quotedMessageText) {
         this.id = id;
         this.messageType = messageType;
 
@@ -56,6 +58,7 @@ public class MessageModel {
         } else {
             this.userInteractions = userInteractions;
         }
+        this.localIp = localIp;
         this.sender = sender;
         this.time = time;
         this.message = message;
@@ -139,12 +142,21 @@ public class MessageModel {
         this.userInteractions = userInteractions;
     }
 
+    public String getLocalIp() {
+        return localIp;
+    }
+
+    public void setLocalIp(String localIp) {
+        this.localIp = localIp;
+    }
+
     @Override
     public String toString() {
         return "MessageModel{" +
                 "id=" + id +
                 ", messageType=" + messageType +
                 ", userInteractions=" + userInteractions +
+                ", localIp='" + localIp + '\'' +
                 ", sender='" + sender + '\'' +
                 ", time='" + time + '\'' +
                 ", message='" + message + '\'' +
