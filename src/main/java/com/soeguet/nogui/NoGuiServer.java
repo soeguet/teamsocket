@@ -419,9 +419,7 @@ public class NoGuiServer extends WebSocketServer {
                     messageModel.setId(Long.parseLong(id));
 
                     broadcast(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
-
                 }
-
             }
 
         } catch (SQLException e) {
