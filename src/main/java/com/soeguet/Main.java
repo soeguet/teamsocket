@@ -9,6 +9,12 @@ public class Main {
 
   public static void main(String[] args) {
     logger.info("Starting server...");
-    new NoGuiServer("127.0.0.1", 8100);
+
+    String hostAddress = "127.0.0.1";
+    int port = 8100;
+
+    System.out.println("hostAddress: " + hostAddress + ", port: " + port);
+
+    new NoGuiServer(hostAddress, port);
   }
 }

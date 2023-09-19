@@ -11,6 +11,7 @@ import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
+import java.awt.image.ImageConsumer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.sql.*;
@@ -39,9 +40,9 @@ public class NoGuiServer extends WebSocketServer {
         props.setProperty("password", "postgres");
         props.setProperty("ssl", "false");
 
-        initDatabase();
+        this.initDatabase();
 
-        run();
+        this.run();
     }
 
     /**
@@ -50,6 +51,18 @@ public class NoGuiServer extends WebSocketServer {
     private void initDatabase() {
 
         String createTableSql = "CREATE TABLE IF NOT EXISTS messages (id BIGSERIAL PRIMARY KEY, message VARCHAR(2255) NOT NULL);";
+        String createTableSqlImages = "CREATE TABLE IF NOT EXISTS message_images (id BIGSERIAL PRIMARY KEY, message_id BIGINT REFERENCES messages(id), image_data bytea NOT NULL);";
+
+        initiateDatabase(createTableSql);
+        initiateDatabase(createTableSqlImages);
+    }
+
+    /**
+     Initializes the database by creating the necessary table if it does not already exist.
+
+     @param sqlQuery the SQL statement to create the table
+     */
+    private void initiateDatabase(String sqlQuery) {
 
         try {
 
@@ -57,7 +70,7 @@ public class NoGuiServer extends WebSocketServer {
 
             try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement()) {
 
-                stmt.executeUpdate(createTableSql);
+                stmt.executeUpdate(sqlQuery);
                 LOGGER.info("table created successfully");
 
             }
@@ -143,7 +156,7 @@ public class NoGuiServer extends WebSocketServer {
      */
     private void getAllFromDatabase(WebSocket connWebsocket) {
 
-        String selectSql = "SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 100) subquery ORDER BY id;";
+        String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id LIMIT 100;";
 
         // get max row count
         try {
@@ -152,7 +165,6 @@ public class NoGuiServer extends WebSocketServer {
 
             try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY); ResultSet rs = stmt.executeQuery(selectSql)) {
 
-                // rs.last();
                 int row = rs.getFetchSize();
                 connWebsocket.send("ROWS:" + row);
 
@@ -171,9 +183,19 @@ public class NoGuiServer extends WebSocketServer {
                 String id = rs.getString("id");
                 String message = rs.getString("message");
 
-                MessageModel messageModel = mapper.readValue(message, MessageModel.class);
+                BaseModel messageModel = mapper.readValue(message, BaseModel.class);
 
-                if (messageModel.getId() == null) messageModel.setId(Long.parseLong(id));
+                if (messageModel instanceof PictureModel) {
+
+                    byte[] imageBytes = rs.getBytes( "image_data");
+                    ((PictureModel) messageModel).setPicture(imageBytes);
+                }
+
+                if (messageModel.getId() == null) {
+
+                    messageModel.setId(Long.parseLong(id));
+                }
+
                 connWebsocket.send(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
 
             }
@@ -227,16 +249,15 @@ public class NoGuiServer extends WebSocketServer {
                     }
                 }
             } else if (baseModel instanceof PictureModel) {
-                    
-                    saveToDatabase(message);
-                    getLastFromDatabase();
+
+                saveImageToDatabase(message);
+                getLastFromDatabase();
             }
 
         } catch (JsonProcessingException e) {
 
             LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
         }
-
 
         // remove is typing.. for all clients
         broadcast("X".getBytes());
@@ -311,6 +332,60 @@ public class NoGuiServer extends WebSocketServer {
         }
     }
 
+    private void saveImageToDatabase(String message)  {
+
+        assert dbPath != null;
+
+        PictureModel pictureModel = null;
+        try {
+            pictureModel = mapper.readValue(message, PictureModel.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] imageBytes = pictureModel.getPicture();
+        pictureModel.setPicture(null);
+
+        long messageId;
+
+        String updatedPictureModelJson = null;
+        try {
+            updatedPictureModelJson = mapper.writeValueAsString(pictureModel);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        String insertMessageSql = "INSERT INTO messages (message) VALUES (?) RETURNING id";
+
+        try (Connection conn = DriverManager.getConnection(dbPath, props); PreparedStatement pstmt = conn.prepareStatement(insertMessageSql)) {
+
+            pstmt.setString(1, updatedPictureModelJson);
+
+            // fetch generated ID
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    messageId = rs.getLong(1);
+                } else {
+                    throw new SQLException("no ID generated");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // insert image into database
+        String insertImageSql = "INSERT INTO message_images (message_id, image_data) VALUES (?, ?)";
+        try (Connection conn = DriverManager.getConnection(dbPath, props); PreparedStatement pstmt = conn.prepareStatement(insertImageSql)) {
+            pstmt.setLong(1, messageId);
+            pstmt.setBytes(2, imageBytes);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("image saved to database");
+
+    }
 
     /**
      Retrieves the last message from the database and broadcasts it.
@@ -319,7 +394,8 @@ public class NoGuiServer extends WebSocketServer {
      */
     private void getLastFromDatabase() {
 
-        String selectSql = "SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 1) AS last_entry";
+//        String selectSql = "SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 1) AS last_entry";
+        String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
 
         try {
 
@@ -332,7 +408,14 @@ public class NoGuiServer extends WebSocketServer {
                     String id = rs.getString("id");
                     String message = rs.getString("message");
 
-                    MessageModel messageModel = mapper.readValue(message, MessageModel.class);
+                    BaseModel messageModel = mapper.readValue(message, BaseModel.class);
+
+                    if (messageModel instanceof PictureModel) {
+
+                        byte[] imageBytes = rs.getBytes( "image_data");
+                        ((PictureModel) messageModel).setPicture(imageBytes);
+                    }
+
                     messageModel.setId(Long.parseLong(id));
 
                     broadcast(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
