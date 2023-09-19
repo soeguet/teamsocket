@@ -11,7 +11,6 @@ import java.util.List;
 public class MessageModel extends BaseModel {
 
     private byte messageType;
-    private String message;
     private String quotedMessageSender;
     private String quotedMessageTime;
     private String quotedMessageText;
@@ -61,16 +60,6 @@ public class MessageModel extends BaseModel {
 
     }
 
-    public Long getId() {
-
-        return id;
-    }
-
-    public void setId(Long id) {
-
-        this.id = id;
-    }
-
     public byte getMessageType() {
 
         return messageType;
@@ -79,46 +68,6 @@ public class MessageModel extends BaseModel {
     public void setMessageType(byte messageType) {
 
         this.messageType = messageType;
-    }
-
-    public List<UserInteraction> getUserInteractions() {
-
-        return userInteractions;
-    }
-
-    public void setUserInteractions(List<UserInteraction> userInteractions) {
-
-        this.userInteractions = userInteractions;
-    }
-
-    public String getLocalIp() {
-
-        return localIp;
-    }
-
-    public void setLocalIp(String localIp) {
-
-        this.localIp = localIp;
-    }
-
-    public String getSender() {
-
-        return sender;
-    }
-
-    public void setSender(String sender) {
-
-        this.sender = sender;
-    }
-
-    public String getTime() {
-
-        return time;
-    }
-
-    public void setTime(String time) {
-
-        this.time = time;
     }
 
     public String getQuotedMessageSender() {
@@ -151,16 +100,6 @@ public class MessageModel extends BaseModel {
         this.quotedMessageText = quotedMessageText;
     }
 
-    public String getMessage() {
-
-        return message;
-    }
-
-    public void setMessage(String message) {
-
-        this.message = message;
-    }
-
     public List<UserInteraction> addUserInteractions(String name, String emoji) {
 
         if (this.userInteractions == null) {
@@ -173,8 +112,17 @@ public class MessageModel extends BaseModel {
     @Override
     public String toString() {
 
-        return "MessageModel{" + "id=" + id + ", messageType=" + messageType + ", userInteractions=" + userInteractions + ", localIp='" + localIp + '\'' + ", sender='" + sender + '\'' + ", time='" + time + '\'' + ", message='" + message + '\'' + ", quotedMessageSender='" + quotedMessageSender + '\'' + ", quotedMessageTime='" + quotedMessageTime + '\'' + ", quotedMessageText='" + quotedMessageText + '\'' + '}';
+        return "MessageModel{" +
+                "messageType=" + messageType +
+                ", quotedMessageSender='" + quotedMessageSender + '\'' +
+                ", quotedMessageTime='" + quotedMessageTime + '\'' +
+                ", quotedMessageText='" + quotedMessageText + '\'' +
+                ", id=" + id +
+                ", userInteractions=" + userInteractions +
+                ", localIp='" + localIp + '\'' +
+                ", sender='" + sender + '\'' +
+                ", time='" + time + '\'' +
+                ", message='" + message + '\'' +
+                '}';
     }
-
-
 }

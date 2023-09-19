@@ -17,10 +17,11 @@ import java.util.List;
 public abstract class BaseModel {
 
     Long id;
-     List<UserInteraction> userInteractions;
+    List<UserInteraction> userInteractions;
     String localIp;
-     String sender;
-     String time;
+    String sender;
+    String time;
+    String message;
 
     public Long getId() {
 
@@ -70,5 +71,28 @@ public abstract class BaseModel {
     public void setTime(String time) {
 
         this.time = time;
+    }
+
+    public String getMessage() {
+
+        return message;
+    }
+
+    @Override
+    public String toString() {
+
+        return "BaseModel{" +
+                "id=" + id +
+                ", userInteractions=" + userInteractions +
+                ", localIp='" + localIp + '\'' +
+                ", sender='" + sender + '\'' +
+                ", time='" + time + '\'' +
+                ", message='" + message + '\'' +
+                '}';
+    }
+
+    public void setMessage(String message) {
+
+        this.message = message;
     }
 }
