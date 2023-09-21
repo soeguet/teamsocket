@@ -1,11 +1,12 @@
 package com.soeguet;
 
 import com.soeguet.nogui.NoGuiServer;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.logging.Logger;
+
 public class Main {
-  private static final Logger logger = LoggerFactory.getLogger(Main.class);
+  private static final java.util.logging.Logger logger = Logger.getLogger(Main.class.getName());
 
   public static void main(String[] args) {
     logger.info("Starting server...");

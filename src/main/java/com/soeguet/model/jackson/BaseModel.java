@@ -78,6 +78,11 @@ public abstract class BaseModel {
         return message;
     }
 
+    public void setMessage(String message) {
+
+        this.message = message;
+    }
+
     @Override
     public String toString() {
 
@@ -89,10 +94,5 @@ public abstract class BaseModel {
                 ", time='" + time + '\'' +
                 ", message='" + message + '\'' +
                 '}';
-    }
-
-    public void setMessage(String message) {
-
-        this.message = message;
     }
 }
