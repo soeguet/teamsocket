@@ -11,11 +11,11 @@ import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
-import java.awt.image.ImageConsumer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 public class NoGuiServer extends WebSocketServer {
@@ -187,7 +187,7 @@ public class NoGuiServer extends WebSocketServer {
 
                 if (messageModel instanceof PictureModel) {
 
-                    byte[] imageBytes = rs.getBytes( "image_data");
+                    byte[] imageBytes = rs.getBytes("image_data");
                     ((PictureModel) messageModel).setPicture(imageBytes);
                 }
 
@@ -243,15 +243,25 @@ public class NoGuiServer extends WebSocketServer {
                     case MessageTypes.DELETED, MessageTypes.INTERACTED, MessageTypes.EDITED -> replaceInDatabase(baseModel.getId(), message);
                     default -> {
 
-                        saveToDatabase(message);
-                        getLastFromDatabase();
+                        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
+                            executor.submit(() -> {
+
+                                saveToDatabase(message);
+                                getLastFromDatabase();
+                            });
+                        }
                     }
                 }
             } else if (baseModel instanceof PictureModel) {
+                try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
-                saveImageToDatabase(message);
-                getLastFromDatabase();
+                    executor.submit(() -> {
+
+                        saveImageToDatabase(message);
+                        getLastFromDatabase();
+                    });
+                }
             }
 
         } catch (JsonProcessingException e) {
@@ -260,7 +270,13 @@ public class NoGuiServer extends WebSocketServer {
         }
 
         // remove is typing.. for all clients
-        broadcast("X".getBytes());
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+
+            executor.submit(() -> {
+
+                broadcast("X".getBytes());
+            });
+        }
     }
 
     /**
@@ -332,7 +348,52 @@ public class NoGuiServer extends WebSocketServer {
         }
     }
 
-    private void saveImageToDatabase(String message)  {
+    /**
+     Retrieves the last message from the database and broadcasts it.
+
+     This method retrieves the last message from the `messages` table in the database. It uses a SQL query to select the last entry based on the `id` column. The retrieved message is then mapped to a `MessageModel` object using JSON deserialization. The `id` field of the `MessageModel` is set based on the retrieved `id` from the database. Finally, the broadcast method is called to broadcast the serialized `MessageModel` as a JSON string.
+     */
+    private void getLastFromDatabase() {
+
+//        String selectSql = "SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 1) AS last_entry";
+        String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
+
+        try {
+
+            assert dbPath != null;
+
+            try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(selectSql)) {
+
+                while (rs.next()) {
+
+                    String id = rs.getString("id");
+                    String message = rs.getString("message");
+
+                    BaseModel messageModel = mapper.readValue(message, BaseModel.class);
+
+                    if (messageModel instanceof PictureModel) {
+
+                        byte[] imageBytes = rs.getBytes("image_data");
+                        ((PictureModel) messageModel).setPicture(imageBytes);
+                    }
+
+                    messageModel.setId(Long.parseLong(id));
+
+                    broadcast(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
+                }
+            }
+
+        } catch (SQLException e) {
+
+            LOGGER.log(Level.SEVERE, "Error retrieving last message from database", e);
+
+        } catch (JsonProcessingException e) {
+
+            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
+        }
+    }
+
+    private void saveImageToDatabase(String message) {
 
         assert dbPath != null;
 
@@ -388,51 +449,6 @@ public class NoGuiServer extends WebSocketServer {
     }
 
     /**
-     Retrieves the last message from the database and broadcasts it.
-
-     This method retrieves the last message from the `messages` table in the database. It uses a SQL query to select the last entry based on the `id` column. The retrieved message is then mapped to a `MessageModel` object using JSON deserialization. The `id` field of the `MessageModel` is set based on the retrieved `id` from the database. Finally, the broadcast method is called to broadcast the serialized `MessageModel` as a JSON string.
-     */
-    private void getLastFromDatabase() {
-
-//        String selectSql = "SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 1) AS last_entry";
-        String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
-
-        try {
-
-            assert dbPath != null;
-
-            try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(selectSql)) {
-
-                while (rs.next()) {
-
-                    String id = rs.getString("id");
-                    String message = rs.getString("message");
-
-                    BaseModel messageModel = mapper.readValue(message, BaseModel.class);
-
-                    if (messageModel instanceof PictureModel) {
-
-                        byte[] imageBytes = rs.getBytes( "image_data");
-                        ((PictureModel) messageModel).setPicture(imageBytes);
-                    }
-
-                    messageModel.setId(Long.parseLong(id));
-
-                    broadcast(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
-                }
-            }
-
-        } catch (SQLException e) {
-
-            LOGGER.log(Level.SEVERE, "Error retrieving last message from database", e);
-
-        } catch (JsonProcessingException e) {
-
-            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
-        }
-    }
-
-    /**
      Handles an error that occurs on a WebSocket connection.
 
      This method logs the error message along with the remote socket address of the connection.
@@ -455,7 +471,7 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public void onStart() {
 
-        LOGGER.info("server started successfully");
+        LOGGER.info("server started successfully with ip " + this.getAddress().getHostString() + " and port " + this.getAddress().getPort() + "!");
     }
 
     /**

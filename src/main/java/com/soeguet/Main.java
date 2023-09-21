@@ -1,21 +1,31 @@
 package com.soeguet;
 
 import com.soeguet.nogui.NoGuiServer;
-import org.slf4j.LoggerFactory;
 
-import java.util.logging.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
-  private static final java.util.logging.Logger logger = Logger.getLogger(Main.class.getName());
 
-  public static void main(String[] args) {
-    logger.info("Starting server...");
+    public static void main(String... args) {
 
-    String hostAddress = "127.0.0.1";
-    int port = 8100;
+        Map<String, String> argumente = new HashMap<>();
 
-    System.out.println("hostAddress: " + hostAddress + ", port: " + port);
+        for (String arg : args) {
+            String[] split = arg.split("=");
+            if (split.length == 2) {
+                argumente.put(split[0], split[1]);
+            }
+        }
 
-    new NoGuiServer(hostAddress, port);
-  }
+        String ip = argumente.get("ip");
+        String port = argumente.get("port");
+
+        if (ip == null || port == null) {
+            System.out.println("please provide additional arguments for ip and port. eg: ip=127.0.0.1 port=8100");
+            return;
+        }
+
+        new NoGuiServer(ip, Integer.parseInt(port));
+    }
 }
