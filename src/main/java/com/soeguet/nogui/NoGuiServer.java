@@ -15,7 +15,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.Properties;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 public class NoGuiServer extends WebSocketServer {
@@ -163,20 +162,13 @@ public class NoGuiServer extends WebSocketServer {
      @param handshake The ClientHandshake object representing the handshake information from the client.
      */
     @Override
-    public void onOpen(WebSocket conn, ClientHandshake handshake) {
+    public synchronized void onOpen(WebSocket conn, ClientHandshake handshake) {
 
         LOGGER.info("User " + conn.getRemoteSocketAddress() + " just connected!");
 
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        getAllFromDatabase(conn);
+        sendMessage(conn, "welcome to the server!");
 
-            executor.submit(() -> {
-
-                getAllFromDatabase(conn);
-                sendMessage(conn, "welcome to the server!");
-            });
-
-            executor.submit(conn::sendPing);
-        }
     }
 
     /**
@@ -184,7 +176,7 @@ public class NoGuiServer extends WebSocketServer {
 
      @param connWebsocket The WebSocket connection object representing the connection.
      */
-    private void getAllFromDatabase(WebSocket connWebsocket) {
+    private synchronized void getAllFromDatabase(WebSocket connWebsocket) {
 
         final String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id LIMIT 100;";
 
@@ -204,9 +196,6 @@ public class NoGuiServer extends WebSocketServer {
 
                 sendMessage(connWebsocket, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
             }
-
-            sendMessage(connWebsocket, "execute");
-
         } catch (SQLException e) {
 
             LOGGER.log(Level.SEVERE, "Error retrieving messages from database", e);
@@ -226,11 +215,9 @@ public class NoGuiServer extends WebSocketServer {
      @param connWebsocket The WebSocket connection object representing the connection.
      @param message       The message to be sent.
      */
-    private void sendMessage(final WebSocket connWebsocket, final String message) {
+    private synchronized void sendMessage(final WebSocket connWebsocket, final String message) {
 
         connWebsocket.send(message);
-        connWebsocket.send("execute");
-
     }
 
     /**
@@ -333,52 +320,37 @@ public class NoGuiServer extends WebSocketServer {
      @param message The message received from the client as a string.
      */
     @Override
-    public void onMessage(WebSocket conn, String message) {
+    public synchronized void onMessage(WebSocket conn, String message) {
 
+        final BaseModel baseModel;
         try {
+            baseModel = deserializeMessageModel(message);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
-            final BaseModel baseModel = deserializeMessageModel(message);
+        if (baseModel instanceof MessageModel) {
 
-            if (baseModel instanceof MessageModel) {
+            switch (((MessageModel) baseModel).getMessageType()) {
+                case MessageTypes.DELETED, MessageTypes.INTERACTED, MessageTypes.EDITED -> replaceInDatabase(baseModel.getId(), message);
+                default -> {
 
-                switch (((MessageModel) baseModel).getMessageType()) {
-                    case MessageTypes.DELETED, MessageTypes.INTERACTED, MessageTypes.EDITED -> replaceInDatabase(baseModel.getId(), message);
-                    default -> {
+                    saveToDatabase(message);
+                    getLastFromDatabase();
 
-                        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-
-                            executor.submit(() -> {
-
-                                saveToDatabase(message);
-                                getLastFromDatabase();
-                            });
-                        }
-                    }
-                }
-            } else if (baseModel instanceof PictureModel) {
-                try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-
-                    executor.submit(() -> {
-
-                        saveImageToDatabase(message);
-                        getLastFromDatabase();
-                    });
                 }
             }
+        } else if (baseModel instanceof PictureModel) {
 
-        } catch (JsonProcessingException e) {
+            saveImageToDatabase(message);
+            getLastFromDatabase();
 
-            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
         }
 
         // remove is typing.. for all clients
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
-            executor.submit(() -> {
+        broadcast("X".getBytes());
 
-                broadcast("X".getBytes());
-            });
-        }
     }
 
     /**
@@ -387,7 +359,7 @@ public class NoGuiServer extends WebSocketServer {
      @param id      The ID of the message to replace.
      @param message The new message to replace the existing message with.
      */
-    private void replaceInDatabase(Long id, String message) {
+    private synchronized void replaceInDatabase(Long id, String message) {
 
         // Prepare the UPDATE query
         String updateSql = "UPDATE messages SET message=? WHERE id=?";
@@ -430,7 +402,7 @@ public class NoGuiServer extends WebSocketServer {
 
      @param message the message to be saved
      */
-    private void saveToDatabase(String message) {
+    private synchronized void saveToDatabase(String message) {
 
         String insertSql = "INSERT INTO messages (message) VALUES (?)";
 
@@ -463,13 +435,15 @@ public class NoGuiServer extends WebSocketServer {
 
      @throws RuntimeException if there is an error retrieving or processing the last message
      */
-    private void getLastFromDatabase() {
+    private synchronized void getLastFromDatabase() {
 
         final String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
 
         try {
 
-            try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(selectSql)) {
+            try (Connection conn = DriverManager.getConnection(dbPath, props);
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(selectSql)) {
 
                 while (rs.next()) {
 
@@ -734,14 +708,9 @@ public class NoGuiServer extends WebSocketServer {
      @param message The message received, as a ByteBuffer.
      */
     @Override
-    public void onMessage(WebSocket conn, ByteBuffer message) {
+    public synchronized void onMessage(WebSocket conn, ByteBuffer message) {
 
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        broadcast(((String) conn.getAttachment()).getBytes());
 
-            executor.submit(() -> {
-
-                broadcast(((String) conn.getAttachment()).getBytes());
-            });
-        }
     }
 }
