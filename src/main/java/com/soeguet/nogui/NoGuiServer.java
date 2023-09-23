@@ -203,8 +203,9 @@ public class NoGuiServer extends WebSocketServer {
                 setIdIfAvailable(messageModel, id);
 
                 sendMessage(connWebsocket, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
-
             }
+
+            sendMessage(connWebsocket, "execute");
 
         } catch (SQLException e) {
 
@@ -216,6 +217,7 @@ public class NoGuiServer extends WebSocketServer {
             LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
             throw new RuntimeException(e.getMessage());
         }
+
     }
 
     /**
@@ -227,6 +229,8 @@ public class NoGuiServer extends WebSocketServer {
     private void sendMessage(final WebSocket connWebsocket, final String message) {
 
         connWebsocket.send(message);
+        connWebsocket.send("execute");
+
     }
 
     /**
