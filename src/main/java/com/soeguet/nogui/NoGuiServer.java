@@ -196,6 +196,9 @@ public class NoGuiServer extends WebSocketServer {
 
                 sendMessage(connWebsocket, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
             }
+
+            sendMessage(connWebsocket, "__startup__end__");
+
         } catch (SQLException e) {
 
             LOGGER.log(Level.SEVERE, "Error retrieving messages from database", e);
