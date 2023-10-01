@@ -75,9 +75,10 @@ public class NoGuiServer extends WebSocketServer {
         Optional<String> db_password = Optional.ofNullable(System.getenv("DB_PASSWORD"));
         this.props.setProperty("password", db_password.orElseThrow(() -> new RuntimeException("DB_PASSWORD not set")));
 
-        //db_ssl
-        Optional<String> db_ssl = Optional.ofNullable(System.getenv("DB_SSL"));
-        this.props.setProperty("ssl", db_ssl.orElseThrow(() -> new RuntimeException("DB_SSL not set")));
+        //db_ssl - hardcoded for now, since it is not used yet
+        this.props.setProperty("ssl", "false");
+        //Optional<String> db_ssl = Optional.ofNullable(System.getenv("DB_SSL"));
+        //this.props.setProperty("ssl", db_ssl.orElseThrow(() -> new RuntimeException("DB_SSL not set")));
     }
 
     /**
