@@ -4,6 +4,7 @@ import com.soeguet.nogui.NoGuiServer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class Main {
 
@@ -18,14 +19,14 @@ public class Main {
             }
         }
 
-        String ip = argumente.get("ip");
-        String port = argumente.get("port");
+        Optional<String> ip = Optional.ofNullable(argumente.get("ip"));
+        Optional<String> port = Optional.ofNullable(argumente.get("port"));
 
-        if (ip == null || port == null) {
+        if (ip.isEmpty() || port.isEmpty()) {
             System.out.println("please provide additional arguments for ip and port. eg: ip=127.0.0.1 port=8100");
             return;
         }
 
-        new NoGuiServer(ip, Integer.parseInt(port));
+        new NoGuiServer(ip.get(), Integer.parseInt(port.get()));
     }
 }
