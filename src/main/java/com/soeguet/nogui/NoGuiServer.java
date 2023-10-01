@@ -119,6 +119,8 @@ public class NoGuiServer extends WebSocketServer {
         }
     }
 
+
+
     /**
      Checks if the specified table exists in the database.
 
@@ -149,7 +151,6 @@ public class NoGuiServer extends WebSocketServer {
     public void onWebsocketPing(WebSocket webSocket, Framedata framedata) {
 
         super.onWebsocketPing(webSocket, framedata);
-        broadcast("X".getBytes());
     }
 
     /**
@@ -397,11 +398,6 @@ public class NoGuiServer extends WebSocketServer {
             getLastFromDatabase();
 
         }
-
-        //TODO implement is typing.. feature
-
-        // remove is typing.. for all clients
-        broadcast("X".getBytes());
     }
 
     /**
@@ -786,7 +782,6 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public synchronized void onMessage(WebSocket webSocket, ByteBuffer byteBuffer) {
 
-        //TODO implement is typing.. feature
-        broadcast(((String) webSocket.getAttachment()).getBytes());
+        broadcast(byteBuffer);
     }
 }
