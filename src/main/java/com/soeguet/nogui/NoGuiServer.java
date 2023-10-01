@@ -14,34 +14,71 @@ import org.java_websocket.server.WebSocketServer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.sql.*;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Level;
 
 public class NoGuiServer extends WebSocketServer {
 
-    private final String dbPath;
-
     private final Properties props;
-
     private final ObjectMapper mapper;
-
     private final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger(NoGuiServer.class.getName());
+    private String dbPath;
 
-    public NoGuiServer(String hostAddress, int port) {
+    /**
+     Constructs a NoGuiServer object with the given host address and port number.
+     This server does not have a graphical user interface.
 
-        super(new InetSocketAddress(hostAddress, port));
+     @param hostAddress the host address to bind the server to
+     @param port        the port number to bind the server to
+     */
+    public NoGuiServer(String hostAddress, String port) {
 
-        mapper = new ObjectMapper();
+        super(new InetSocketAddress(hostAddress, Integer.parseInt(port)));
 
-        dbPath = "jdbc:postgresql://localhost:5432/postgres";
-        props = new Properties();
-        props.setProperty("user", "postgres");
-        props.setProperty("password", "postgres");
-        props.setProperty("ssl", "false");
+        this.mapper = new ObjectMapper();
+        this.props = new Properties();
+
+        this.setDatabaseSettings();
 
         this.initDatabase();
-
         this.run();
+    }
+
+    /**
+     Sets the database settings by retrieving them from environment variables and setting the corresponding properties.
+
+     The method throws a RuntimeException if any of the required environment variables are not set.
+
+     The following environment variables are expected:
+     - DB_PATH: the path to the database
+     - DB_USER: the username for the database connection
+     - DB_PASSWORD: the password for the database connection
+     - DB_SSL: whether SSL should be enabled for the database connection
+
+     Once the environment variables are retrieved, they are assigned to the corresponding properties of the object.
+     If any of the required environment variables are not set, a RuntimeException is thrown.
+     */
+    private void setDatabaseSettings() {
+
+        //throw exception if env variables are not set
+
+        //db_path
+        Optional<String> db_path = Optional.ofNullable(System.getenv("DB_PATH"));
+        this.dbPath = db_path.orElseThrow(() -> new RuntimeException("DB_PATH not set"));
+
+        //db_user
+        Optional<String> db_user = Optional.ofNullable(System.getenv("DB_USER"));
+        this.props.setProperty("user", db_user.orElseThrow(() -> new RuntimeException("DB_USER not set")));
+
+        //db_password
+        Optional<String> db_password = Optional.ofNullable(System.getenv("DB_PASSWORD"));
+        this.props.setProperty("password", db_password.orElseThrow(() -> new RuntimeException("DB_PASSWORD not set")));
+
+        //db_ssl - hardcoded for now, since it is not used yet
+        this.props.setProperty("ssl", "false");
+        //Optional<String> db_ssl = Optional.ofNullable(System.getenv("DB_SSL"));
+        //this.props.setProperty("ssl", db_ssl.orElseThrow(() -> new RuntimeException("DB_SSL not set")));
     }
 
     /**
@@ -67,9 +104,9 @@ public class NoGuiServer extends WebSocketServer {
 
             try {
 
-                try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement()) {
+                try (Connection connection = DriverManager.getConnection(dbPath, props); Statement statement = connection.createStatement()) {
 
-                    stmt.executeUpdate(sqlQuery);
+                    statement.executeUpdate(sqlQuery);
                     LOGGER.info("table created successfully - databasetabel: " + databaseName);
 
                 }
@@ -91,9 +128,9 @@ public class NoGuiServer extends WebSocketServer {
      */
     private boolean checkTableExists(String tableName) {
 
-        try (Connection conn = DriverManager.getConnection(dbPath, props); ResultSet rs = conn.getMetaData().getTables(null, null, tableName, null)) {
+        try (Connection connection = DriverManager.getConnection(dbPath, props); ResultSet resultSet = connection.getMetaData().getTables(null, null, tableName, null)) {
 
-            return rs.next();
+            return resultSet.next();
 
         } catch (SQLException e) {
 
@@ -105,99 +142,103 @@ public class NoGuiServer extends WebSocketServer {
     /**
      Called when a Ping message is received from a WebSocket connection.
 
-     @param conn The WebSocket connection object representing the connection from which the Ping message was received.
-     @param f    The Ping message frame data received from the client.
+     @param webSocket The WebSocket connection object representing the connection from which the Ping message was received.
+     @param framedata    The Ping message frame data received from the client.
      */
     @Override
-    public void onWebsocketPing(WebSocket conn, Framedata f) {
+    public void onWebsocketPing(WebSocket webSocket, Framedata framedata) {
 
-        super.onWebsocketPing(conn, f);
+        super.onWebsocketPing(webSocket, framedata);
         broadcast("X".getBytes());
     }
 
     /**
      Called when a Pong frame is received from a WebSocket connection.
 
-     @param conn The WebSocket connection object representing the connection from which the Pong frame was received.
-     @param f    The Pong frame received from the client.
+     @param webSocket The WebSocket connection object representing the connection from which the Pong frame was received.
+     @param framedata    The Pong frame received from the client.
      */
     @Override
-    public void onWebsocketPong(WebSocket conn, Framedata f) {
+    public void onWebsocketPong(WebSocket webSocket, Framedata framedata) {
 
-        if (conn.getAttachment() == null) conn.setAttachment(new String(f.getPayloadData().array()));
+        if (webSocket.getAttachment() == null) webSocket.setAttachment(new String(framedata.getPayloadData().array()));
     }
 
     /**
      Called when the WebSocket connection is closing.
 
-     @param conn   The WebSocket connection object representing the connection being closed.
+     @param webSocket   The WebSocket connection object representing the connection being closed.
      @param code   The status code indicating the reason for closure.
      @param reason The reason for closure provided by the client or the server.
      @param remote Indicates whether the closure was initiated by the remote endpoint (client) or the local endpoint (server).
      */
     @Override
-    public void onWebsocketClosing(WebSocket conn, int code, String reason, boolean remote) {
+    public void onWebsocketClosing(WebSocket webSocket, int code, String reason, boolean remote) {
 
-        super.onWebsocketClosing(conn, code, reason, remote);
+        super.onWebsocketClosing(webSocket, code, reason, remote);
     }
 
     /**
      Called when the WebSocket connection is closing.
 
-     @param conn   The WebSocket connection object representing the connection being closed.
+     @param webSocket   The WebSocket connection object representing the connection being closed.
      @param code   The status code indicating the reason for closure.
      @param reason The reason for closure provided by the client or the server.
      @param remote Indicates whether the closure was initiated by the remote endpoint (client) or the local endpoint (server).
      */
     @Override
-    public void onClosing(WebSocket conn, int code, String reason, boolean remote) {
+    public void onClosing(WebSocket webSocket, int code, String reason, boolean remote) {
 
-        super.onClosing(conn, code, reason, remote);
+        super.onClosing(webSocket, code, reason, remote);
     }
 
     /**
      Called when a new WebSocket connection is opened.
 
-     @param conn      The WebSocket connection object representing the connection that was opened.
-     @param handshake The ClientHandshake object representing the handshake information from the client.
+     @param webSocket      The WebSocket connection object representing the connection that was opened.
+     @param clientHandshake The ClientHandshake object representing the handshake information from the client.
      */
     @Override
-    public synchronized void onOpen(WebSocket conn, ClientHandshake handshake) {
+    public synchronized void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
 
-        LOGGER.info("User " + conn.getRemoteSocketAddress() + " just connected!");
+        LOGGER.info("User " + webSocket.getRemoteSocketAddress() + " just connected!");
 
-        getAllFromDatabase(conn);
-        sendMessage(conn, "welcome to the server!");
-
+        getAllFromDatabase(webSocket);
+        sendMessage(webSocket, "welcome to the server!");
     }
 
     /**
      Retrieves the data from the database and sends it to the given WebSocket connection.
 
-     @param connWebsocket The WebSocket connection object representing the connection.
+     @param webSocket The WebSocket connection object representing the connection.
      */
-    private synchronized void getAllFromDatabase(WebSocket connWebsocket) {
+    private synchronized void getAllFromDatabase(WebSocket webSocket) {
 
-        final String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id LIMIT 100;";
+        final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id LIMIT 100;";
 
         // actual query
-        try (Connection conn = DriverManager.getConnection(dbPath, props); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(selectSql)) {
+        try (Connection connection = DriverManager.getConnection(dbPath, props); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(SELECT_SQL)) {
 
-            while (rs.next()) {
+            while (resultSet.next()) {
 
-                final String id = fetchID(rs);
-                final String message = getMessageFromResultSet(rs);
+                final String id = fetchID(resultSet);
+                final String message = getMessageFromResultSet(resultSet);
 
-                final BaseModel messageModel = deserializeMessageModel(message);
+                if (id == null) throw new RuntimeException("id is null");
+                if (message == null) throw new RuntimeException("message is null");
 
-                addImageToPictureModel(messageModel, rs);
+                final BaseModel baseModel = deserializeMessageModel(message);
 
-                setIdIfAvailable(messageModel, id);
+                //check if baseModel is instanceof pcitureModel and add image if so
+                addImageToPictureModel(baseModel, resultSet);
 
-                sendMessage(connWebsocket, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
+                setIdIfAvailable(baseModel, id);
+
+                sendMessage(webSocket, mapper.writeValueAsString(baseModel));
             }
 
-            sendMessage(connWebsocket, "__startup__end__");
+            //tell the new client that all messages have been sent
+            sendMessage(webSocket, "__startup__end__");
 
         } catch (SQLException e) {
 
@@ -215,40 +256,40 @@ public class NoGuiServer extends WebSocketServer {
     /**
      Sends a message to the specified WebSocket connection.
 
-     @param connWebsocket The WebSocket connection object representing the connection.
+     @param webSocket The WebSocket connection object representing the connection.
      @param message       The message to be sent.
      */
-    private synchronized void sendMessage(final WebSocket connWebsocket, final String message) {
+    private synchronized void sendMessage(final WebSocket webSocket, final String message) {
 
-        connWebsocket.send(message);
+        webSocket.send(message);
     }
 
     /**
      Retrieves the ID value from the ResultSet object.
 
-     @param rs The ResultSet object containing the data.
+     @param resultSet The ResultSet object containing the data.
 
      @return The ID value retrieved from the ResultSet.
 
      @throws SQLException If an error occurs during database access.
      */
-    private String fetchID(final ResultSet rs) throws SQLException {
+    private String fetchID(final ResultSet resultSet) throws SQLException {
 
-        return rs.getString("id");
+        return resultSet.getString("id");
     }
 
     /**
      Retrieves the "message" field value from the given ResultSet object.
 
-     @param rs The ResultSet object from which to retrieve the message value.
+     @param resultSet The ResultSet object from which to retrieve the message value.
 
      @return The message value as a string.
 
      @throws SQLException if a database access error occurs.
      */
-    private String getMessageFromResultSet(final ResultSet rs) throws SQLException {
+    private String getMessageFromResultSet(final ResultSet resultSet) throws SQLException {
 
-        return rs.getString("message");
+        return resultSet.getString("message");
     }
 
     /**
@@ -274,16 +315,16 @@ public class NoGuiServer extends WebSocketServer {
      </p>
 
      @param messageModel The BaseModel object to which the image will be added.
-     @param rs           The ResultSet object containing the image data.
+     @param resultSet           The ResultSet object containing the image data.
 
      @throws SQLException if there is an error retrieving the image data from the ResultSet.
      */
-    private void addImageToPictureModel(final BaseModel messageModel, final ResultSet rs) throws SQLException {
+    private void addImageToPictureModel(final BaseModel messageModel, final ResultSet resultSet) throws SQLException {
 
-        if (messageModel instanceof PictureModel) {
+        if (messageModel instanceof PictureModel pictureModel) {
 
-            byte[] imageBytes = rs.getBytes("image_data");
-            ((PictureModel) messageModel).setPicture(imageBytes);
+            byte[] imageBytes = resultSet.getBytes("image_data");
+            pictureModel.setPicture(imageBytes);
         }
     }
 
@@ -305,37 +346,43 @@ public class NoGuiServer extends WebSocketServer {
     /**
      Called when the WebSocket connection is closed.
 
-     @param conn   The WebSocket connection object representing the connection.
+     @param webSocket   The WebSocket connection object representing the connection.
      @param code   The exit code indicating the reason for the closure.
      @param reason The additional information about the closure.
      @param remote Indicates whether the closure was initiated by the remote endpoint.
      */
     @Override
-    public void onClose(WebSocket conn, int code, String reason, boolean remote) {
+    public void onClose(WebSocket webSocket, int code, String reason, boolean remote) {
 
-        LOGGER.info("closed " + conn.getRemoteSocketAddress() + " " + conn.getAttachment() + " with exit code " + code + " additional info: " + reason);
+        LOGGER.info("closed " + webSocket.getRemoteSocketAddress() + " " + webSocket.getAttachment() + " with exit code " + code + " additional info: " + reason);
     }
 
     /**
      Called when a message is received from a WebSocket connection.
 
-     @param conn    The WebSocket connection object representing the connection from which the message was received.
+     @param webSocket    The WebSocket connection object representing the connection from which the message was received.
      @param message The message received from the client as a string.
      */
     @Override
-    public synchronized void onMessage(WebSocket conn, String message) {
+    public synchronized void onMessage(WebSocket webSocket, String message) {
 
         final BaseModel baseModel;
+
         try {
+
             baseModel = deserializeMessageModel(message);
+
         } catch (JsonProcessingException e) {
+
             throw new RuntimeException(e);
         }
 
-        if (baseModel instanceof MessageModel) {
+        if (baseModel instanceof MessageModel messageModel) {
 
-            switch (((MessageModel) baseModel).getMessageType()) {
-                case MessageTypes.DELETED, MessageTypes.INTERACTED, MessageTypes.EDITED -> replaceInDatabase(baseModel.getId(), message);
+            switch (messageModel.getMessageType()) {
+
+                case MessageTypes.DELETED, MessageTypes.INTERACTED, MessageTypes.EDITED -> replaceInDatabase(messageModel.getId(), message);
+
                 default -> {
 
                     saveToDatabase(message);
@@ -343,6 +390,7 @@ public class NoGuiServer extends WebSocketServer {
 
                 }
             }
+
         } else if (baseModel instanceof PictureModel) {
 
             saveImageToDatabase(message);
@@ -350,10 +398,10 @@ public class NoGuiServer extends WebSocketServer {
 
         }
 
+        //TODO implement is typing.. feature
+
         // remove is typing.. for all clients
-
         broadcast("X".getBytes());
-
     }
 
     /**
@@ -365,33 +413,38 @@ public class NoGuiServer extends WebSocketServer {
     private synchronized void replaceInDatabase(Long id, String message) {
 
         // Prepare the UPDATE query
-        String updateSql = "UPDATE messages SET message=? WHERE id=?";
-        Connection connection;
+        final String UPDATE_SQL = "UPDATE messages SET message=? WHERE id=?";
+
+        if (dbPath == null) throw new RuntimeException("dbPath is null");
 
         try {
 
-            assert dbPath != null;
-            connection = DriverManager.getConnection(dbPath, props);
-            PreparedStatement updateStatement = connection.prepareStatement(updateSql);
-            updateStatement.setString(1, message);
-            updateStatement.setLong(2, id);
+            try (Connection connection = DriverManager.getConnection(dbPath, props); PreparedStatement updateStatement = connection.prepareStatement(UPDATE_SQL);) {
 
-            int rowsUpdated = updateStatement.executeUpdate();
+                //set the parameters
+                updateStatement.setString(1, message);
+                updateStatement.setLong(2, id);
 
-            if (rowsUpdated == 1) {
+                // execute -> goal => update one line only!
+                if (updateStatement.executeUpdate() == 1) {
 
-                // If one row was updated, retrieve the updated message from the database
-                String selectSql = "SELECT * FROM messages WHERE id=?";
-                PreparedStatement selectStatement = connection.prepareStatement(selectSql);
-                selectStatement.setLong(1, id);
-                ResultSet rs = selectStatement.executeQuery();
+                    // If one row was updated, retrieve the updated message from the database
+                    PreparedStatement selectStatement = connection.prepareStatement("SELECT * FROM messages WHERE id=?");
 
-                if (rs.next()) broadcast(message);
+                    //set the parameters
+                    selectStatement.setLong(1, id);
 
-            } else {
+                    //execute the query
+                    ResultSet resultSet = selectStatement.executeQuery();
 
-                // If no rows were updated, handle the error
-                System.err.println("Failed to update message with ID " + id);
+                    //broadcast the message if it exists
+                    if (resultSet.next()) broadcast(message);
+
+                } else {
+
+                    // If no rows or more than one were updated, print to stderr
+                    System.err.println("Failed to update message with ID " + id);
+                }
             }
 
         } catch (SQLException e) {
@@ -407,16 +460,19 @@ public class NoGuiServer extends WebSocketServer {
      */
     private synchronized void saveToDatabase(String message) {
 
-        String insertSql = "INSERT INTO messages (message) VALUES (?)";
+        final String INSERT_SQL = "INSERT INTO messages (message) VALUES (?)";
+
+        if (dbPath == null) throw new RuntimeException("dbPath is null");
 
         try {
 
-            assert dbPath != null;
+            try (Connection connection = DriverManager.getConnection(dbPath, props); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL)) {
 
-            try (Connection conn = DriverManager.getConnection(dbPath, props); PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                //set the parameters
+                preparedStatement.setString(1, message);
 
-                pstmt.setString(1, message);
-                pstmt.executeUpdate();
+                //execute the query
+                preparedStatement.executeUpdate();
             }
 
         } catch (SQLException e) {
@@ -440,25 +496,30 @@ public class NoGuiServer extends WebSocketServer {
      */
     private synchronized void getLastFromDatabase() {
 
-        final String selectSql = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
+        final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
+
+        if (dbPath == null) throw new RuntimeException("dbPath is null");
 
         try {
 
-            try (Connection conn = DriverManager.getConnection(dbPath, props);
-                 Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(selectSql)) {
+            try (Connection connection = DriverManager.getConnection(dbPath, props); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(SELECT_SQL)) {
 
-                while (rs.next()) {
+                while (resultSet.next()) {
 
-                    final String id = fetchID(rs);
-                    final String message = getMessageFromResultSet(rs);
+                    //fetch id and message
+                    final String id = fetchID(resultSet);
+                    final String message = getMessageFromResultSet(resultSet);
 
+                    //deserialize message
                     BaseModel messageModel = deserializeMessageModel(message);
 
-                    addImageToPictureModel(messageModel, rs);
+                    //check if baseModel is instanceof pictureModel and add image if so
+                    addImageToPictureModel(messageModel, resultSet);
 
+                    //set id if available
                     messageModel.setId(Long.parseLong(id));
 
+                    //broadcast message
                     broadcast(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(messageModel));
                 }
             }
@@ -498,8 +559,10 @@ public class NoGuiServer extends WebSocketServer {
         //serialize model to json
         String updatedPictureModelJson = serializePictureModelToJson(pictureModel);
 
+        //save the message (message table is linked to the picture table) to the database and get id
         messageId = saveMessage(updatedPictureModelJson);
 
+        //save the image to the database
         saveImage(messageId, imageBytes);
     }
 
@@ -564,21 +627,23 @@ public class NoGuiServer extends WebSocketServer {
      */
     private long saveMessage(final String updatedPictureModelJson) {
 
-        long messageId;
-        final String insertMessageSql = "INSERT INTO messages (message) VALUES (?) RETURNING id";
+        final String INSERT_MESSAGE_SQL = "INSERT INTO messages (message) VALUES (?) RETURNING id";
 
-        try (Connection conn = DriverManager.getConnection(dbPath, props); PreparedStatement pstmt = conn.prepareStatement(insertMessageSql)) {
+        try (
+                //create the connection and the prepared statement
+                Connection connection = DriverManager.getConnection(dbPath, props); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_MESSAGE_SQL)) {
 
-            pstmt.setString(1, updatedPictureModelJson);
+            //set the parameters
+            preparedStatement.setString(1, updatedPictureModelJson);
 
-            messageId = saveToDataBaseAndReturnId(pstmt);
+            //execute the query and return the generated id
+            return saveToDataBaseAndReturnId(preparedStatement);
 
         } catch (SQLException e) {
 
             LOGGER.log(Level.SEVERE, "Error saving message to database", e);
             throw new RuntimeException(e);
         }
-        return messageId;
     }
 
     /**
@@ -599,11 +664,14 @@ public class NoGuiServer extends WebSocketServer {
     private void saveImage(final long messageId, final byte[] imageBytes) {
 
         // insert image into database
-        final String insertImageSql = "INSERT INTO message_images (message_id, image_data) VALUES (?, ?)";
+        final String INSERT_IMAGE_SQL = "INSERT INTO message_images (message_id, image_data) VALUES (?, ?)";
 
-        try (Connection conn = DriverManager.getConnection(dbPath, props); PreparedStatement pstmt = conn.prepareStatement(insertImageSql)) {
+        try (
+                //create the connection and the prepared statement
+                Connection connection = DriverManager.getConnection(dbPath, props); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_IMAGE_SQL)) {
 
-            saveImageToDatabase(pstmt, messageId, imageBytes);
+            //save the image to the database
+            saveImageToDatabase(preparedStatement, messageId, imageBytes);
 
         } catch (SQLException e) {
 
@@ -621,20 +689,20 @@ public class NoGuiServer extends WebSocketServer {
      If no ID is generated, a SQLException is thrown.
      </p>
 
-     @param pstmt the PreparedStatement object for executing the SQL query
+     @param preparedStatement the PreparedStatement object for executing the SQL query
 
      @return the generated ID for the saved message
 
      @throws SQLException if there is an error executing the SQL query or fetching the generated ID
      */
-    private long saveToDataBaseAndReturnId(final PreparedStatement pstmt) throws SQLException {
+    private long saveToDataBaseAndReturnId(final PreparedStatement preparedStatement) throws SQLException {
 
         // fetch generated ID
-        try (ResultSet rs = pstmt.executeQuery()) {
+        try (ResultSet resultSet = preparedStatement.executeQuery()) {
 
-            if (rs.next()) {
+            if (resultSet.next()) {
 
-                return rs.getLong(1);
+                return resultSet.getLong(1);
 
             } else {
 
@@ -655,17 +723,20 @@ public class NoGuiServer extends WebSocketServer {
      the database.
      </p>
 
-     @param pstmt      the prepared statement used to execute the update statement
-     @param messageId  the ID of the message to which the image belongs
-     @param imageBytes the byte array of the image to be saved
+     @param preparedStatement the prepared statement used to execute the update statement
+     @param messageId         the ID of the message to which the image belongs
+     @param imageBytes        the byte array of the image to be saved
 
      @throws SQLException if there is an error executing the update statement
      */
-    private void saveImageToDatabase(final PreparedStatement pstmt, final long messageId, final byte[] imageBytes) throws SQLException {
+    private void saveImageToDatabase(final PreparedStatement preparedStatement, final long messageId, final byte[] imageBytes) throws SQLException {
 
-        pstmt.setLong(1, messageId);
-        pstmt.setBytes(2, imageBytes);
-        pstmt.executeUpdate();
+        //set the parameters
+        preparedStatement.setLong(1, messageId);
+        preparedStatement.setBytes(2, imageBytes);
+
+        //execute the query
+        preparedStatement.executeUpdate();
     }
 
     /**
@@ -699,7 +770,9 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public void onStart() {
 
+        LOGGER.info("***");
         LOGGER.info("server started successfully with ip " + this.getAddress().getHostString() + " and port " + this.getAddress().getPort() + "!");
+        LOGGER.info("***");
     }
 
     /**
@@ -707,13 +780,13 @@ public class NoGuiServer extends WebSocketServer {
 
      This method broadcasts the received message to all connected clients.
 
-     @param conn    The WebSocket connection object.
-     @param message The message received, as a ByteBuffer.
+     @param webSocket  The WebSocket connection object.
+     @param byteBuffer The message received, as a ByteBuffer.
      */
     @Override
-    public synchronized void onMessage(WebSocket conn, ByteBuffer message) {
+    public synchronized void onMessage(WebSocket webSocket, ByteBuffer byteBuffer) {
 
-        broadcast(((String) conn.getAttachment()).getBytes());
-
+        //TODO implement is typing.. feature
+        broadcast(((String) webSocket.getAttachment()).getBytes());
     }
 }

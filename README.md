@@ -12,15 +12,16 @@ The TeamSocket project is built on the Java-WebSocket from TooTallNate. You can 
 
 Here is a list of main technologies and dependencies used in this project:
 
-- [Java 17](https://openjdk.java.net/projects/jdk/17/)
-- [Maven 3](https://maven.apache.org/)
-- [Java-WebSocket 1.5.3](https://github.com/TooTallNate/Java-WebSocket)
-- [PostgreSQL JDBC Driver 42.6.0](https://jdbc.postgresql.org/)
-- [Jackson Core, Databind, Annotations 2.15.2](https://github.com/FasterXML/jackson)
+- [Java 21](https://openjdk.java.net/projects/jdk/21/)
+- [Maven 3.9](https://maven.apache.org/)
+- [Java-WebSocket 1.5.4](https://github.com/TooTallNate/Java-WebSocket)
+- [PostgreSQL JDBC Driver 42.6](https://jdbc.postgresql.org/)
+- [Jackson Databind, Annotations 2.15](https://github.com/FasterXML/jackson)
 
 ## Building and Running the Project
 
-You need Java 17 installed on your machine to build and run the project. After cloning the repository, navigate to the project root directory and execute the following command:
+You need Java 21 installed on your machine to build and run the project. 
+After cloning the repository, navigate to the project root directory and execute the following command:
 
 ```bash
 ./mvnw clean install
@@ -29,16 +30,22 @@ You need Java 17 installed on your machine to build and run the project. After c
 This will compile the code, run the tests, and package the application. Once the build process is completed, you can run the application with the following command:
 
 ```bash
-java -jar target/teamsocket-1.0.jar
+java -jar target/teamsocket-1.0.jar ip=127.0.0.1 port=8100
 ```
 
-(Please replace `teamsocket-1.0.jar` with your actual jar file name if it's different.)
+- Please replace `teamsocket-1.0.jar` with your actual jar file name if it's different.
+- Please provide your own IP address and port number.
 
 Since all messages are persisted in a PostgreSQL Database, you will need one as well. Easiest way would be to use Docker. You can run the following command to start a PostgreSQL container:
 
 ```bash
 docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres
 ```
+
+Needed environment variables for the application to run are:
+- `DB_PATH`: The database path. For example: `jdbc:postgresql://localhost:5432/postgres`
+- `DB_USER`: The database user. For example: `postgres`
+- `DB_PASSWORD`: The database password. For example: `postgres`
 
 ## License
 
