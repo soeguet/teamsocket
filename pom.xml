@@ -44,7 +44,7 @@
 
     <build>
 
-        <finalName>teamsocket-${version}</finalName>
+        <finalName>teamsocket-${project.version}</finalName>
 
         <resources>
 
