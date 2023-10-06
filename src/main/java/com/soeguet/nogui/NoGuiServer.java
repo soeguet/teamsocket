@@ -11,18 +11,21 @@ import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class NoGuiServer extends WebSocketServer {
 
     private final Properties props;
     private final ObjectMapper mapper;
-    private final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger(NoGuiServer.class.getName());
+    private final Logger logger = Logger.getLogger(NoGuiServer.class.getName());
     private String dbPath;
 
     /**
@@ -41,8 +44,40 @@ public class NoGuiServer extends WebSocketServer {
 
         this.setDatabaseSettings();
 
+        this.socketVersion();
+
         this.initDatabase();
         this.run();
+    }
+
+    /**
+     * Retrieves the version of the socket.
+     * <p>
+     * This method reads the version of the socket from the "version.properties" file, and logs the version information.
+     * </p>
+     * <p>
+     * The file "version.properties" should be located in the classpath.
+     * </p>
+     *
+     * @throws RuntimeException if an error occurs while reading the version from the file
+     */
+    private void socketVersion() {
+
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("version.properties");
+
+        if (inputStream != null) {
+
+            try {
+
+                props.load(inputStream);
+                logger.info("Socket version: " + props.getProperty("version"));
+
+            } catch (IOException e) {
+
+                throw new RuntimeException(e);
+            }
+
+        }
     }
 
     /**
@@ -107,13 +142,13 @@ public class NoGuiServer extends WebSocketServer {
                 try (Connection connection = DriverManager.getConnection(dbPath, props); Statement statement = connection.createStatement()) {
 
                     statement.executeUpdate(sqlQuery);
-                    LOGGER.info("table created successfully - databasetabel: " + databaseName);
+                    logger.info("table created successfully - databasetabel: " + databaseName);
 
                 }
 
             } catch (SQLException e) {
 
-                LOGGER.log(Level.SEVERE, "Error initializing database", e);
+                logger.log(Level.SEVERE, "Error initializing database", e);
                 throw new RuntimeException(e.getMessage());
             }
         }
@@ -136,7 +171,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error checking if table exists", e);
+            logger.log(Level.SEVERE, "Error checking if table exists", e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -202,7 +237,7 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public synchronized void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
 
-        LOGGER.info("User " + webSocket.getRemoteSocketAddress() + " just connected!");
+        logger.info("User " + webSocket.getRemoteSocketAddress() + " just connected!");
 
         getAllFromDatabase(webSocket);
         sendMessage(webSocket, "welcome to the server!");
@@ -215,7 +250,8 @@ public class NoGuiServer extends WebSocketServer {
      */
     private synchronized void getAllFromDatabase(WebSocket webSocket) {
 
-        final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id LIMIT 100;";
+//        final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 100;";
+        final String SELECT_SQL = "SELECT * FROM (SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 100) AS tmp ORDER BY tmp.id ASC;";
 
         // actual query
         try (Connection connection = DriverManager.getConnection(dbPath, props); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(SELECT_SQL)) {
@@ -243,12 +279,12 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error retrieving messages from database", e);
+            logger.log(Level.SEVERE, "Error retrieving messages from database", e);
             throw new RuntimeException(e.getSQLState());
 
         } catch (JsonProcessingException e) {
 
-            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
+            logger.log(Level.SEVERE, "Error parsing JSON", e);
             throw new RuntimeException(e.getMessage());
         }
 
@@ -355,7 +391,7 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public void onClose(WebSocket webSocket, int code, String reason, boolean remote) {
 
-        LOGGER.info("closed " + webSocket.getRemoteSocketAddress() + " " + webSocket.getAttachment() + " with exit code " + code + " additional info: " + reason);
+        logger.info("closed " + webSocket.getRemoteSocketAddress() + " " + webSocket.getAttachment() + " with exit code " + code + " additional info: " + reason);
     }
 
     /**
@@ -445,7 +481,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error updating message in database", e);
+            logger.log(Level.SEVERE, "Error updating message in database", e);
         }
     }
 
@@ -473,7 +509,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error saving message to database", e);
+            logger.log(Level.SEVERE, "Error saving message to database", e);
         }
     }
 
@@ -522,12 +558,12 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error retrieving last message from database", e);
+            logger.log(Level.SEVERE, "Error retrieving last message from database", e);
             throw new RuntimeException(e.getSQLState());
 
         } catch (JsonProcessingException e) {
 
-            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
+            logger.log(Level.SEVERE, "Error parsing JSON", e);
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -579,7 +615,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (JsonProcessingException e) {
 
-            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
+            logger.log(Level.SEVERE, "Error parsing JSON", e);
             throw new RuntimeException(e);
         }
     }
@@ -601,7 +637,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (JsonProcessingException e) {
 
-            LOGGER.log(Level.SEVERE, "Error parsing JSON", e);
+            logger.log(Level.SEVERE, "Error parsing JSON", e);
             throw new RuntimeException(e);
         }
     }
@@ -637,7 +673,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error saving message to database", e);
+            logger.log(Level.SEVERE, "Error saving message to database", e);
             throw new RuntimeException(e);
         }
     }
@@ -671,7 +707,7 @@ public class NoGuiServer extends WebSocketServer {
 
         } catch (SQLException e) {
 
-            LOGGER.log(Level.SEVERE, "Error saving image to database", e);
+            logger.log(Level.SEVERE, "Error saving image to database", e);
             throw new RuntimeException(e);
         }
     }
@@ -702,7 +738,7 @@ public class NoGuiServer extends WebSocketServer {
 
             } else {
 
-                LOGGER.log(Level.SEVERE, "Error saving message to database");
+                logger.log(Level.SEVERE, "Error saving message to database");
                 throw new SQLException("no ID generated");
             }
 
@@ -750,8 +786,8 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public void onError(WebSocket conn, Exception ex) {
 
-        LOGGER.log(Level.SEVERE, "Error on connection " + conn.getRemoteSocketAddress() + ":" + ex);
-        LOGGER.log(Level.SEVERE, "server might be running already!", ex);
+        logger.log(Level.SEVERE, "Error on connection " + conn.getRemoteSocketAddress() + ":" + ex);
+        logger.log(Level.SEVERE, "server might be running already!", ex);
         throw new RuntimeException(ex);
     }
 
@@ -766,9 +802,9 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public void onStart() {
 
-        LOGGER.info("***");
-        LOGGER.info("server started successfully with ip " + this.getAddress().getHostString() + " and port " + this.getAddress().getPort() + "!");
-        LOGGER.info("***");
+        logger.info("***");
+        logger.info("server started successfully with ip " + this.getAddress().getHostString() + " and port " + this.getAddress().getPort() + "!");
+        logger.info("***");
     }
 
     /**
