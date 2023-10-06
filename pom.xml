@@ -6,7 +6,7 @@
 
     <groupId>com.soeguet</groupId>
     <artifactId>teamsocket</artifactId>
-    <version>1.0</version>
+    <version>v1.0.1</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -43,6 +43,18 @@
     </dependencies>
 
     <build>
+
+        <finalName>teamsocket-${version}</finalName>
+
+        <resources>
+
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+
+        </resources>
+
         <plugins>
 
             <plugin>
