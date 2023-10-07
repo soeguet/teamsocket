@@ -38,6 +38,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if there is an error saving the image to the database
      */
+    @Override
     public void saveExtractedImageToDatabaseInImageTable(final long messageId, final byte[] imageBytes) {
 
         // insert image into database
@@ -134,22 +135,45 @@ public class DatabaseConnection implements DatabaseConnectionController {
      Once the environment variables are retrieved, they are assigned to the corresponding properties of the object.
      If any of the required environment variables are not set, a RuntimeException is thrown.
      */
+    @Override
     public void setDatabaseSettings() {
 
         //db_path
-        Optional<String> db_path = Optional.ofNullable(System.getenv("DB_PATH"));
+        Optional<String> db_path = retrieveEnvironmentVariables("DB_PATH");
         this.dbPath = db_path.orElseThrow(() -> new RuntimeException("DB_PATH not set"));
 
         //db_user
-        Optional<String> db_user = Optional.ofNullable(System.getenv("DB_USER"));
+        Optional<String> db_user = retrieveEnvironmentVariables("DB_USER");
         this.properties.setProperty("user", db_user.orElseThrow(() -> new RuntimeException("DB_USER not set")));
 
         //db_password
-        Optional<String> db_password = Optional.ofNullable(System.getenv("DB_PASSWORD"));
+        Optional<String> db_password = retrieveEnvironmentVariables("DB_PASSWORD");
         this.properties.setProperty("password", db_password.orElseThrow(() -> new RuntimeException("DB_PASSWORD not set")));
 
         //db_ssl - hardcoded for now, since it is not used yet
         this.properties.setProperty("ssl", "false");
+    }
+
+    /**
+     * Retrieves the value of the specified environment variable.
+     *
+     * @param variableName the name of the environment variable to retrieve
+     * @return an Optional containing the value of the environment variable, or an empty Optional if the variable is not set
+     */
+    @Override
+    public Optional<String> retrieveEnvironmentVariables(final String variableName) {
+
+        return Optional.ofNullable(System.getenv(variableName));
+    }
+
+    public Properties getProperties() {
+
+        return properties;
+    }
+
+    public String getDbPath() {
+
+        return dbPath;
     }
 
     /**
@@ -194,6 +218,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @return true if the table exists, false otherwise
      */
+    @Override
     public boolean checkTableExists(String tableName) {
 
         try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties); ResultSet resultSet = connection.getMetaData().getTables(null, null, tableName, null)) {
@@ -222,6 +247,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if an error occurs while replacing the message
      */
+    @Override
     public synchronized void replaceInDatabase(Long id, String message) {
 
         final String UPDATE_SQL = "UPDATE messages SET message=? WHERE id=?";
@@ -255,6 +281,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @param message the message to be saved
      */
+    @Override
     public synchronized void saveToDatabase(String message) {
 
         final String INSERT_SQL = "INSERT INTO messages (message) VALUES (?)";
@@ -291,6 +318,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if an error occurs while retrieving the last message
      */
+    @Override
     public synchronized DatabaseResult getLastFromDatabase() {
 
         final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
@@ -327,6 +355,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if there is an error saving the message to the database
      */
+    @Override
     public long saveMessageWithoutPictureToDatabase(final String updatedPictureModelJson) {
 
         final String INSERT_MESSAGE_SQL = "INSERT INTO messages (message) VALUES (?) RETURNING id";
@@ -396,6 +425,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if there is an error retrieving the messages from the database
      */
+    @Override
     public synchronized Deque<DatabaseResult> getAllFromDatabase() {
 
         final String SELECT_SQL = "SELECT * FROM (SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 100) AS tmp ORDER BY tmp.id ASC;";
