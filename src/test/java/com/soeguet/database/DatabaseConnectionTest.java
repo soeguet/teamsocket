@@ -1,23 +1,17 @@
 package com.soeguet.database;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.doCallRealMethod;
 
 class DatabaseConnectionTest {
 
-    @BeforeAll
-    static void beforeAll() {
-
-    }
-
     @Test
+    @DisplayName("Test if database environment variables are set")
     void testIfDatabaseEnvironmentVariablesAreSet() {
 
         //setup
@@ -34,6 +28,7 @@ class DatabaseConnectionTest {
     }
 
     @Test
+    @DisplayName("Test if database environment variables are set when all env vars are present")
     void setDatabaseSettingsAllEnvVarsPresent() {
 
         //setup
@@ -48,8 +43,8 @@ class DatabaseConnectionTest {
         databaseConnection.setDatabaseSettings();
 
         //assertions
-        assertEquals("jdbc:postgresql://localhost:5432/postgres",databaseConnection.getDbPath());
-        assertEquals("postgres",databaseConnection.getProperties().getProperty("user"));
-        assertEquals("postgres",databaseConnection.getProperties().getProperty("password"));
+        assertEquals("jdbc:postgresql://localhost:5432/postgres", databaseConnection.getDbPath());
+        assertEquals("postgres", databaseConnection.getProperties().getProperty("user"));
+        assertEquals("postgres", databaseConnection.getProperties().getProperty("password"));
     }
 }
