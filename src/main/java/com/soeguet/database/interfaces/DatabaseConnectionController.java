@@ -3,6 +3,7 @@ package com.soeguet.database.interfaces;
 import com.soeguet.model.dtos.DatabaseResult;
 
 import java.util.Deque;
+import java.util.Optional;
 
 /**
  * The DatabaseConnectionController interface provides methods to interact with a database.
@@ -15,12 +16,21 @@ public interface DatabaseConnectionController {
      * @param tableName the name of the table to check
      * @return true if the table exists, false otherwise
      */
-    boolean checkTableExists(String tableName);
+    boolean checkIfTableExists(String tableName);
 
     /**
      * Initializes the database by creating the necessary tables if they don't exist.
      */
     void initDatabase();
+
+    /**
+     * Retrieves the value of the specified environment variable.
+     *
+     * @param variableName The name of the environment variable.
+     * @return An {@link Optional} containing the value of the environment variable if it exists,
+     *         or an empty {@link Optional} if the variable does not exist.
+     */
+    Optional<String> retrieveEnvironmentVariables(final String variableName);
 
     /**
      * Sets the database settings for connecting to the database.

@@ -23,6 +23,23 @@ public class DatabaseConnection implements DatabaseConnectionController {
         this.properties = properties;
     }
 
+    //needed for integration test
+    public DatabaseConnection() {
+
+        this.properties = new Properties();
+    }
+
+    public Properties getProperties() {
+
+        // READ ONLY! return a copy instead of the original object
+        return new Properties(properties);
+    }
+
+    public String getDbPath() {
+
+        return dbPath;
+    }
+
     /**
      Saves an image associated with a message to the database.
 
@@ -38,12 +55,13 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if there is an error saving the image to the database
      */
+    @Override
     public void saveExtractedImageToDatabaseInImageTable(final long messageId, final byte[] imageBytes) {
 
         // insert image into database
         final String INSERT_IMAGE_SQL = "INSERT INTO message_images (message_id, image_data) VALUES (?, ?)";
 
-        try (Connection connection = DriverManager.getConnection(dbPath, properties); PreparedStatement preparedStatement = connection.prepareStatement(INSERT_IMAGE_SQL)) {
+        try (Connection connection = getDatabaseConnection(); PreparedStatement preparedStatement = getPreparedStatement(connection, INSERT_IMAGE_SQL)) {
 
             //save the image to the database
             saveImageToDatabase(preparedStatement, messageId, imageBytes);
@@ -53,6 +71,30 @@ public class DatabaseConnection implements DatabaseConnectionController {
             this.logger.log(Level.SEVERE, "Error saving image to database", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Returns a prepared statement for executing an SQL query with the given connection and SQL statement.
+     *
+     * @param connection       the database connection to use
+     * @param INSERT_IMAGE_SQL the SQL statement to prepare
+     * @return a PreparedStatement object representing the prepared statement
+     * @throws SQLException if a database access error occurs or the SQL syntax is invalid
+     */
+    private PreparedStatement getPreparedStatement(final Connection connection, final String INSERT_IMAGE_SQL) throws SQLException {
+
+        return connection.prepareStatement(INSERT_IMAGE_SQL);
+    }
+
+    /**
+     * Returns a connection to the database.
+     *
+     * @return a Connection object representing the database connection
+     * @throws SQLException if a database access error occurs or the connection cannot be established
+     */
+    private Connection getDatabaseConnection() throws SQLException {
+
+        return DriverManager.getConnection(dbPath, properties);
     }
 
     /**
@@ -78,7 +120,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
         try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties)) {
 
             // If one row was updated, retrieve the updated message from the database
-            PreparedStatement selectStatement = connection.prepareStatement(RETRIEVE_UPDATED_LINE);
+            PreparedStatement selectStatement = getPreparedStatement(connection, RETRIEVE_UPDATED_LINE);
 
             //set the parameters
             selectStatement.setLong(1, updatedId);
@@ -134,22 +176,47 @@ public class DatabaseConnection implements DatabaseConnectionController {
      Once the environment variables are retrieved, they are assigned to the corresponding properties of the object.
      If any of the required environment variables are not set, a RuntimeException is thrown.
      */
+    @Override
     public void setDatabaseSettings() {
 
         //db_path
-        Optional<String> db_path = Optional.ofNullable(System.getenv("DB_PATH"));
+        Optional<String> db_path = retrieveEnvironmentVariables("DB_PATH");
         this.dbPath = db_path.orElseThrow(() -> new RuntimeException("DB_PATH not set"));
 
         //db_user
-        Optional<String> db_user = Optional.ofNullable(System.getenv("DB_USER"));
-        this.properties.setProperty("user", db_user.orElseThrow(() -> new RuntimeException("DB_USER not set")));
+        setPropertyWithErrorMessage("DB_USER", "user");
 
         //db_password
-        Optional<String> db_password = Optional.ofNullable(System.getenv("DB_PASSWORD"));
-        this.properties.setProperty("password", db_password.orElseThrow(() -> new RuntimeException("DB_PASSWORD not set")));
+        setPropertyWithErrorMessage("DB_PASSWORD", "password");
 
         //db_ssl - hardcoded for now, since it is not used yet
         this.properties.setProperty("ssl", "false");
+    }
+
+    /**
+     * Sets a property with an error message if the corresponding environment variable is not set.
+     *
+     * @param environmentVariableName the name of the environment variable to retrieve
+     * @param propertyKey             the key of the property to set
+     * @throws RuntimeException if the environment variable is not set
+     */
+    private void setPropertyWithErrorMessage(final String environmentVariableName, final String propertyKey) {
+
+        Optional<String> db_user = retrieveEnvironmentVariables(environmentVariableName);
+        this.properties.setProperty(propertyKey, db_user.orElseThrow(() -> new RuntimeException(propertyKey + " not set")));
+    }
+
+    /**
+     Retrieves the value of the specified environment variable.
+
+     @param variableName the name of the environment variable to retrieve
+
+     @return an Optional containing the value of the environment variable, or an empty Optional if the variable is not set
+     */
+    @Override
+    public Optional<String> retrieveEnvironmentVariables(final String variableName) {
+
+        return Optional.ofNullable(System.getenv(variableName));
     }
 
     /**
@@ -172,9 +239,9 @@ public class DatabaseConnection implements DatabaseConnectionController {
      */
     private void initiateDatabaseQuery(String databaseName, String sqlQuery) {
 
-        if (!checkTableExists(databaseName)) {
+        if (!checkIfTableExists(databaseName)) {
 
-            try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties); Statement statement = connection.createStatement()) {
+            try (Connection connection = DriverManager.getConnection(this.getDbPath(), this.getProperties()); Statement statement = connection.createStatement()) {
 
                 statement.executeUpdate(sqlQuery);
                 this.logger.info("table created successfully - database table: " + databaseName);
@@ -194,9 +261,10 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @return true if the table exists, false otherwise
      */
-    public boolean checkTableExists(String tableName) {
+    @Override
+    public boolean checkIfTableExists(String tableName) {
 
-        try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties); ResultSet resultSet = connection.getMetaData().getTables(null, null, tableName, null)) {
+        try (Connection connection = DriverManager.getConnection(this.getDbPath(), this.getProperties()); ResultSet resultSet = connection.getMetaData().getTables(null, null, tableName, null)) {
 
             if (resultSet.next()) {
 
@@ -222,6 +290,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if an error occurs while replacing the message
      */
+    @Override
     public synchronized void replaceInDatabase(Long id, String message) {
 
         final String UPDATE_SQL = "UPDATE messages SET message=? WHERE id=?";
@@ -229,7 +298,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
         try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties)) {
 
             //UPDATE query
-            PreparedStatement updateStatement = connection.prepareStatement(UPDATE_SQL);
+            PreparedStatement updateStatement = getPreparedStatement(connection, UPDATE_SQL);
 
             //set the parameters
             updateStatement.setString(1, message);
@@ -255,15 +324,16 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @param message the message to be saved
      */
+    @Override
     public synchronized void saveToDatabase(String message) {
 
         final String INSERT_SQL = "INSERT INTO messages (message) VALUES (?)";
 
         try {
 
-            try (Connection connection = DriverManager.getConnection(dbPath, properties)) {
+            try (Connection connection = getDatabaseConnection()) {
 
-                PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
+                PreparedStatement preparedStatement = getPreparedStatement(connection, INSERT_SQL);
 
                 //set the parameters
                 preparedStatement.setString(1, message);
@@ -291,15 +361,16 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if an error occurs while retrieving the last message
      */
+    @Override
     public synchronized DatabaseResult getLastFromDatabase() {
 
         final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 1;";
 
-        try (Connection connection = DriverManager.getConnection(dbPath, properties); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(SELECT_SQL)) {
+        try (Connection connection = getDatabaseConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(SELECT_SQL)) {
 
             if (resultSet.next()) {
 
-                return new DatabaseResult(resultSet.getLong(1), resultSet.getString(2), resultSet.getBytes(3));
+                return new DatabaseResult(resultSet.getLong("id"), resultSet.getString("message"), resultSet.getBytes("image_data"));
 
             } else {
 
@@ -327,6 +398,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if there is an error saving the message to the database
      */
+    @Override
     public long saveMessageWithoutPictureToDatabase(final String updatedPictureModelJson) {
 
         final String INSERT_MESSAGE_SQL = "INSERT INTO messages (message) VALUES (?) RETURNING id";
@@ -334,7 +406,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
         try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties)) {
 
             //set the parameters
-            PreparedStatement preparedStatement = connection.prepareStatement(INSERT_MESSAGE_SQL);
+            PreparedStatement preparedStatement = getPreparedStatement(connection, INSERT_MESSAGE_SQL);
             preparedStatement.setString(1, updatedPictureModelJson);
 
             //execute the query and return the generated id
@@ -367,7 +439,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
             if (resultSet.next()) {
 
-                return resultSet.getLong(1);
+                return resultSet.getLong("id");
 
             } else {
 
@@ -396,6 +468,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      @throws RuntimeException if there is an error retrieving the messages from the database
      */
+    @Override
     public synchronized Deque<DatabaseResult> getAllFromDatabase() {
 
         final String SELECT_SQL = "SELECT * FROM (SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id ORDER BY messages.id DESC LIMIT 100) AS tmp ORDER BY tmp.id ASC;";
@@ -407,9 +480,9 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
             while (resultSet.next()) {
 
-                final long id = resultSet.getLong(1);
-                final String message = resultSet.getString(2);
-                final byte[] image = resultSet.getBytes(3);
+                final long id = resultSet.getLong("id");
+                final String message = resultSet.getString("message");
+                final byte[] image = resultSet.getBytes("image_data");
 
                 messageQueue.add(new DatabaseResult(id, message, image));
             }
