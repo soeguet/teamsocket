@@ -1,4 +1,5 @@
 # TeamSocket
+### Version: v1.0.1
 
 Welcome to the TeamSocket project! This repository is the backend to a Java Swing chat client that could run on local servers like a Raspberry Pi. It's a fun chat project akin to a walkie talkie. You can find the chat client at this link: [TeamChat](https://github.com/soeguet/teamchat).
 
