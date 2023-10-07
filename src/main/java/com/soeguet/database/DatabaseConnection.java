@@ -18,9 +18,24 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
     private String dbPath;
 
+    public DatabaseConnection() {
+
+        this.properties = new Properties();
+    }
+
     public DatabaseConnection(final Properties properties) {
 
         this.properties = properties;
+    }
+
+    public Properties getProperties() {
+
+        return properties;
+    }
+
+    public String getDbPath() {
+
+        return dbPath;
     }
 
     /**
@@ -155,25 +170,16 @@ public class DatabaseConnection implements DatabaseConnectionController {
     }
 
     /**
-     * Retrieves the value of the specified environment variable.
-     *
-     * @param variableName the name of the environment variable to retrieve
-     * @return an Optional containing the value of the environment variable, or an empty Optional if the variable is not set
+     Retrieves the value of the specified environment variable.
+
+     @param variableName the name of the environment variable to retrieve
+
+     @return an Optional containing the value of the environment variable, or an empty Optional if the variable is not set
      */
     @Override
     public Optional<String> retrieveEnvironmentVariables(final String variableName) {
 
         return Optional.ofNullable(System.getenv(variableName));
-    }
-
-    public Properties getProperties() {
-
-        return properties;
-    }
-
-    public String getDbPath() {
-
-        return dbPath;
     }
 
     /**
@@ -198,7 +204,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         if (!checkTableExists(databaseName)) {
 
-            try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties); Statement statement = connection.createStatement()) {
+            try (Connection connection = DriverManager.getConnection(this.getDbPath(), this.getProperties()); Statement statement = connection.createStatement()) {
 
                 statement.executeUpdate(sqlQuery);
                 this.logger.info("table created successfully - database table: " + databaseName);
@@ -221,7 +227,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
     @Override
     public boolean checkTableExists(String tableName) {
 
-        try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties); ResultSet resultSet = connection.getMetaData().getTables(null, null, tableName, null)) {
+        try (Connection connection = DriverManager.getConnection(this.getDbPath(), this.getProperties()); ResultSet resultSet = connection.getMetaData().getTables(null, null, tableName, null)) {
 
             if (resultSet.next()) {
 
