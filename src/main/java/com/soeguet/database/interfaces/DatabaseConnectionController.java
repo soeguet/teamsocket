@@ -16,7 +16,7 @@ public interface DatabaseConnectionController {
      * @param tableName the name of the table to check
      * @return true if the table exists, false otherwise
      */
-    boolean checkTableExists(String tableName);
+    boolean checkIfTableExists(String tableName);
 
     /**
      * Initializes the database by creating the necessary tables if they don't exist.
