@@ -31,7 +31,7 @@ After cloning the repository, navigate to the project root directory and execute
 This will compile the code, run the tests, and package the application. Once the build process is completed, you can run the application with the following command:
 
 ```bash
-java -jar target/teamsocket-v1.0.1.jar ip=127.0.0.1 port=8100
+java -jar target/teamsocket.jar ip=127.0.0.1 port=8100
 ```
 
 - Please replace `teamsocket-v1.0.1.jar` with your actual jar file name if it's different.
