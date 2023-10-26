@@ -161,6 +161,11 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public synchronized void onMessage(WebSocket webSocket, ByteBuffer byteBuffer) {
 
+        //no need to broadcast if it is a reaction
+        if(messageController.checkByteArrayForReaction(byteBuffer.array())){
+            return;
+        }
+
         //TODO javadoc
         broadcast(byteBuffer);
     }

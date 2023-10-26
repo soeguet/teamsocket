@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soeguet.controller.interfaces.MessagesControllerInterface;
 import com.soeguet.database.interfaces.DatabaseConnectionController;
 import com.soeguet.model.dtos.DatabaseResult;
+import com.soeguet.model.dtos.ReactionToSocketDTO;
 import com.soeguet.model.jackson.BaseModel;
 import com.soeguet.model.jackson.MessageModel;
 import com.soeguet.model.jackson.PictureModel;
 import com.soeguet.util.MessageTypes;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.logging.Level;
@@ -109,6 +111,40 @@ public class MessagesController implements MessagesControllerInterface {
         }
 
         return "";
+    }
+
+    @Override
+    public boolean checkByteArrayForReaction(final byte[] array) {
+
+        //TODO implement this properly
+        try {
+
+            final ReactionToSocketDTO reactionToSocketDTO = mapper.readValue(array, ReactionToSocketDTO.class);
+
+            String databaseEntry = databaseConnection.getMessageFromDatabase(reactionToSocketDTO.messageId());
+
+            if (databaseEntry == null) return false;
+
+            BaseModel baseModel = deserializeBaseModel(databaseEntry);
+
+            if (baseModel instanceof MessageModel messageModel) {
+
+                messageModel.addReaction(reactionToSocketDTO.reactionName(), reactionToSocketDTO.clientName());
+
+                databaseConnection.replaceInDatabase(reactionToSocketDTO.messageId(), mapper.writeValueAsString(messageModel));
+
+                return true;
+            }
+
+            databaseConnection.replaceInDatabase(reactionToSocketDTO.messageId());
+
+
+            return true;
+
+        } catch (IOException e) {
+
+            return false;
+        }
     }
 
     /**

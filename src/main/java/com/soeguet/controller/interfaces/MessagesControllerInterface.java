@@ -7,4 +7,6 @@ public interface MessagesControllerInterface {
     Deque<String> retrieveLast100Messages();
 
     String onMessageFromClient(String message);
+
+    boolean checkByteArrayForReaction(byte[] array);
 }
