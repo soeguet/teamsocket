@@ -68,6 +68,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > saveExtractedImageToDatabaseInImageTable");
             this.logger.log(Level.SEVERE, "Error saving image to database", e);
             throw new RuntimeException(e);
         }
@@ -130,6 +131,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > retrieveUpdatedEntry");
             logger.log(Level.SEVERE, "Error retrieving updated entry from database", e);
             throw new RuntimeException(e);
         }
@@ -153,6 +155,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > getMessageFromDatabase");
             logger.log(Level.SEVERE, "Error retrieving updated entry from database", e);
             throw new RuntimeException(e);
         }
@@ -180,6 +183,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > saveImageToDatabase");
             logger.log(Level.SEVERE, "Error saving image to database", e);
             throw new RuntimeException(e);
         }
@@ -271,6 +275,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
             } catch (SQLException e) {
 
+                this.logger.log(Level.SEVERE, "DatabaseConnection > initiateDatabaseQuery");
                 logger.log(Level.SEVERE, "Error creating table", e);
                 throw new RuntimeException(e);
             }
@@ -300,6 +305,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > checkIfTableExists");
             logger.log(Level.SEVERE, "Error checking if table exists", e);
             throw new RuntimeException(e.getMessage());
         }
@@ -341,6 +347,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > replaceInDatabase");
             logger.log(Level.SEVERE, "Error replacing message in database", e);
             throw new RuntimeException(e);
         }
@@ -370,12 +377,14 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
                 if (rowsAffected != 1) {
 
+                    this.logger.log(Level.SEVERE, "DatabaseConnection > saveToDatabase");
                     throw new SQLWarning("Message was not saved to database!");
                 }
             }
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > saveToDatabase");
             logger.log(Level.SEVERE, "Error saving message to database", e);
             throw new RuntimeException(e);
         }
@@ -401,11 +410,13 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
             } else {
 
+                this.logger.log(Level.SEVERE, "DatabaseConnection > getLastFromDatabase");
                 throw new SQLWarning("No rows found");
             }
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > getLastFromDatabase");
             throw new RuntimeException(e);
         }
     }
@@ -441,6 +452,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > saveMessageWithoutPictureToDatabase");
             logger.log(Level.SEVERE, "Error saving message to database", e);
             throw new RuntimeException(e);
         }
@@ -470,12 +482,14 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
             } else {
 
+                this.logger.log(Level.SEVERE, "DatabaseConnection > saveToDataBaseAndReturnId");
                 logger.log(Level.SEVERE, "Error saving message to database");
                 throw new SQLException("no ID generated");
             }
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > saveToDataBaseAndReturnId");
             logger.log(Level.SEVERE, "Error saving message to database", e);
             throw new RuntimeException(e);
         }
@@ -518,6 +532,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
         } catch (SQLException e) {
 
+            this.logger.log(Level.SEVERE, "DatabaseConnection > getAllFromDatabase");
             logger.log(Level.SEVERE, "Error retrieving all messages from database", e);
             throw new RuntimeException(e.getSQLState());
         }
