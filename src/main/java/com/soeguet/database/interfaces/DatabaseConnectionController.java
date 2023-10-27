@@ -35,7 +35,7 @@ public interface DatabaseConnectionController {
     /**
      * Sets the database settings for connecting to the database.
      * This method should be called before initializing the database.
-     * The database settings include the database URL, username, and password.
+     * The database settings include the database URL, timeAndUsername, and password.
      */
     void setDatabaseSettings();
 
@@ -119,4 +119,6 @@ public interface DatabaseConnectionController {
      * @throws IllegalArgumentException If the updatedId is null or less than or equal to 0.
      */
     String retrieveUpdatedEntry(Long updatedId);
+
+    String getMessageFromDatabase(Long aLong);
 }

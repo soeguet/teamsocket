@@ -19,14 +19,6 @@ public class PictureModel extends BaseModel {
     @Override
     public String toString() {
 
-        return "PictureModel{" +
-                "picture=" + Arrays.toString(picture) +
-                ", id=" + id +
-                ", userInteractions=" + userInteractions +
-                ", localIp='" + localIp + '\'' +
-                ", sender='" + sender + '\'' +
-                ", time='" + time + '\'' +
-                ", message='" + message + '\'' +
-                '}';
+        return "PictureModel{" + "picture=" + Arrays.toString(picture) + ", id=" + id + ", userInteractions=" + userInteractions + ", localIp='" + localIp + '\'' + ", sender='" + sender + '\'' + ", time='" + time + '\'' + ", message='" + message + '\'' + ", messageType=" + messageType + '}';
     }
 }

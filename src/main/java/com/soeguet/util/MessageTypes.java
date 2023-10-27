@@ -1,8 +1,8 @@
 package com.soeguet.util;
 
 public interface MessageTypes {
-    int DELETED = 127;
-    int NORMAL = 0;
-    int INTERACTED = 2;
-    int EDITED = 7;
+    byte DELETED = 127;
+    byte NORMAL = 0;
+    byte INTERACTED = 2;
+    byte EDITED = 7;
 }

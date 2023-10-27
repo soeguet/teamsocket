@@ -135,6 +135,29 @@ public class DatabaseConnection implements DatabaseConnectionController {
         }
     }
 
+    @Override
+    public String getMessageFromDatabase(final Long aLong) {
+
+        final String SELECT_SQL = "SELECT messages.id, messages.message, message_images.image_data FROM messages LEFT JOIN message_images ON messages.id = message_images.message_id WHERE messages.id = ?;";
+
+        try (Connection connection = DriverManager.getConnection(this.dbPath, this.properties)) {
+
+            // If one row was updated, retrieve the updated message from the database
+            PreparedStatement selectStatement = getPreparedStatement(connection, SELECT_SQL);
+
+            //set the parameters
+            selectStatement.setLong(1, aLong);
+
+            //execute the query and return
+            return selectStatement.executeQuery().getString(2);
+
+        } catch (SQLException e) {
+
+            logger.log(Level.SEVERE, "Error retrieving updated entry from database", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      Saves an image associated with a message to the database.
 
@@ -169,7 +192,7 @@ public class DatabaseConnection implements DatabaseConnectionController {
 
      The following environment variables are expected
      - DB_PATH: the path to the database
-     - DB_USER: the username for the database connection
+     - DB_USER: the timeAndUsername for the database connection
      - DB_PASSWORD: the password for the database connection
      - DB_SSL: whether SSL should be enabled for the database connection
 
@@ -308,6 +331,10 @@ public class DatabaseConnection implements DatabaseConnectionController {
             final int updatedRows = updateStatement.executeUpdate();
 
             if (updatedRows != 1) {
+
+                logger.log(Level.SEVERE, "PLACE: DatabaseConnection > replaceInDatabase");
+                logger.log(Level.SEVERE, "Error replacing message in database");
+                logger.log(Level.SEVERE, "updatedRows: " + updatedRows);
 
                 throw new SQLWarning("No rows updated");
             }
