@@ -127,7 +127,16 @@ public class DatabaseConnection implements DatabaseConnectionController {
             selectStatement.setLong(1, updatedId);
 
             //execute the query and return
-            return selectStatement.executeQuery().getString(2);
+            ResultSet rs = selectStatement.executeQuery();
+
+            if (rs.next()) {
+
+                return rs.getString(2);
+
+            } else {
+
+                return null;
+            }
 
         } catch (SQLException e) {
 
