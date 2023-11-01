@@ -1,58 +1,20 @@
 package com.soeguet.model.jackson;
 
-import com.soeguet.model.UserInteraction;
+public non-sealed class MessageModel extends BaseModel {
 
-import java.util.ArrayList;
-import java.util.List;
+    // variables -- start
+    protected String message;
+    // variables -- end
 
-public class MessageModel extends BaseModel {
+    // getter & setter -- start
+    public String getMessage() {
 
-    private String quotedMessageSender;
-    private String quotedMessageTime;
-    private String quotedMessageText;
-
-    public String getQuotedMessageSender() {
-
-        return quotedMessageSender;
+        return message;
     }
 
-    public void setQuotedMessageSender(String quotedMessageSender) {
+    public void setMessage(final String message) {
 
-        this.quotedMessageSender = quotedMessageSender;
+        this.message = message;
     }
-
-    public String getQuotedMessageTime() {
-
-        return quotedMessageTime;
-    }
-
-    public void setQuotedMessageTime(String quotedMessageTime) {
-
-        this.quotedMessageTime = quotedMessageTime;
-    }
-
-    public String getQuotedMessageText() {
-
-        return quotedMessageText;
-    }
-
-    public void setQuotedMessageText(String quotedMessageText) {
-
-        this.quotedMessageText = quotedMessageText;
-    }
-
-    public List<UserInteraction> addUserInteractions(String name, String emoji) {
-
-        if (this.userInteractions == null) {
-            this.userInteractions = new ArrayList<>();
-        }
-        this.userInteractions.add(new UserInteraction(name, emoji));
-        return this.userInteractions;
-    }
-
-    @Override
-    public String toString() {
-
-        return "MessageModel{" + "quotedMessageSender='" + quotedMessageSender + '\'' + ", quotedMessageTime='" + quotedMessageTime + '\'' + ", " + "quotedMessageText='" + quotedMessageText + '\'' + ", id=" + id + ", userInteractions=" + userInteractions + ", localIp='" + localIp + '\'' + ", sender='" + sender + '\'' + ", time='" + time + '\'' + ", message='" + message + '\'' + ", messageType=" + messageType + '}';
-    }
+    // getter & setter -- end
 }

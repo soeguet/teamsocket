@@ -6,24 +6,38 @@ import com.soeguet.model.UserInteraction;
 
 import java.util.List;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "messageType")
-@JsonSubTypes({@JsonSubTypes.Type(value = MessageModel.class, name = "text"), @JsonSubTypes.Type(value = PictureModel.class, name = "image")})
-public abstract class BaseModel {
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "subclass")
+@JsonSubTypes({@JsonSubTypes.Type(value = MessageModel.class, name = "text"), @JsonSubTypes.Type(value =
+        PictureModel.class, name = "image"), @JsonSubTypes.Type(value = LinkModel.class, name = "link")})
+public abstract sealed class BaseModel permits LinkModel, MessageModel, PictureModel {
 
+    // variables -- start
     protected Long id;
+    protected String subclass;
+    protected byte messageType;
     protected List<UserInteraction> userInteractions;
-    protected String localIp;
     protected String sender;
     protected String time;
-    protected String message;
-    protected byte messageType;
+    protected String quotedMessageSender;
+    protected String quotedMessageTime;
+    protected String quotedMessageText;
+    // variables -- end
 
+    // overrides -- start
+    @Override
+    public String toString() {
+
+        return "BaseModel{" + "id=" + id + ", subclass='" + subclass + '\'' + ", messageType=" + messageType + ", " + "userInteractions=" + userInteractions + ", sender='" + sender + '\'' + ", time='" + time + '\'' + ", " + "quotedMessageSender='" + quotedMessageSender + '\'' + ", quotedMessageTime='" + quotedMessageTime + '\'' + ", quotedMessageText='" + quotedMessageText + '\'' + '}';
+    }
+    // overrides -- end
+
+    // getter & setter -- start
     public Long getId() {
 
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
 
         this.id = id;
     }
@@ -38,24 +52,34 @@ public abstract class BaseModel {
         this.messageType = messageType;
     }
 
-    public List<UserInteraction> getUserInteractions() {
+    public String getQuotedMessageSender() {
 
-        return userInteractions;
+        return quotedMessageSender;
     }
 
-    public void setUserInteractions(List<UserInteraction> userInteractions) {
+    public void setQuotedMessageSender(final String quotedMessageSender) {
 
-        this.userInteractions = userInteractions;
+        this.quotedMessageSender = quotedMessageSender;
     }
 
-    public String getLocalIp() {
+    public String getQuotedMessageText() {
 
-        return localIp;
+        return quotedMessageText;
     }
 
-    public void setLocalIp(String localIp) {
+    public void setQuotedMessageText(final String quotedMessageText) {
 
-        this.localIp = localIp;
+        this.quotedMessageText = quotedMessageText;
+    }
+
+    public String getQuotedMessageTime() {
+
+        return quotedMessageTime;
+    }
+
+    public void setQuotedMessageTime(final String quotedMessageTime) {
+
+        this.quotedMessageTime = quotedMessageTime;
     }
 
     public String getSender() {
@@ -63,9 +87,19 @@ public abstract class BaseModel {
         return sender;
     }
 
-    public void setSender(String sender) {
+    public void setSender(final String sender) {
 
         this.sender = sender;
+    }
+
+    public String getSubclass() {
+
+        return subclass;
+    }
+
+    public void setSubclass(final String subclass) {
+
+        this.subclass = subclass;
     }
 
     public String getTime() {
@@ -73,24 +107,19 @@ public abstract class BaseModel {
         return time;
     }
 
-    public void setTime(String time) {
+    public void setTime(final String time) {
 
         this.time = time;
     }
 
-    public String getMessage() {
+    public List<UserInteraction> getUserInteractions() {
 
-        return message;
+        return userInteractions;
     }
 
-    public void setMessage(String message) {
+    public void setUserInteractions(final List<UserInteraction> userInteractions) {
 
-        this.message = message;
+        this.userInteractions = userInteractions;
     }
-
-    @Override
-    public String toString() {
-
-        return "BaseModel{" + "id=" + id + ", messageType=" + messageType + ", userInteractions=" + userInteractions + ", localIp='" + localIp + '\'' + ", sender='" + sender + '\'' + ", time='" + time + '\'' + ", message='" + message + '\'' + '}';
-    }
+    // getter & setter -- end
 }
