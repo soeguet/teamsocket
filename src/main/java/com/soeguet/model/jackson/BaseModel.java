@@ -1,11 +1,14 @@
 package com.soeguet.model.jackson;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.soeguet.model.UserInteraction;
 
 import java.util.List;
 
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "subclass")
 @JsonSubTypes({@JsonSubTypes.Type(value = MessageModel.class, name = "text"), @JsonSubTypes.Type(value =
         PictureModel.class, name = "image"), @JsonSubTypes.Type(value = LinkModel.class, name = "link")})
@@ -18,20 +21,9 @@ public abstract sealed class BaseModel permits LinkModel, MessageModel, PictureM
     protected List<UserInteraction> userInteractions;
     protected String sender;
     protected String time;
-    protected String quotedMessageSender;
-    protected String quotedMessageTime;
-    protected String quotedMessageText;
+    protected QuoteModel<? extends BaseModel> quotedMessage;
     // variables -- end
 
-    // overrides -- start
-    @Override
-    public String toString() {
-
-        return "BaseModel{" + "id=" + id + ", subclass='" + subclass + '\'' + ", messageType=" + messageType + ", " + "userInteractions=" + userInteractions + ", sender='" + sender + '\'' + ", time='" + time + '\'' + ", " + "quotedMessageSender='" + quotedMessageSender + '\'' + ", quotedMessageTime='" + quotedMessageTime + '\'' + ", quotedMessageText='" + quotedMessageText + '\'' + '}';
-    }
-    // overrides -- end
-
-    // getter & setter -- start
     public Long getId() {
 
         return id;
@@ -40,56 +32,6 @@ public abstract sealed class BaseModel permits LinkModel, MessageModel, PictureM
     public void setId(final Long id) {
 
         this.id = id;
-    }
-
-    public byte getMessageType() {
-
-        return messageType;
-    }
-
-    public void setMessageType(final byte messageType) {
-
-        this.messageType = messageType;
-    }
-
-    public String getQuotedMessageSender() {
-
-        return quotedMessageSender;
-    }
-
-    public void setQuotedMessageSender(final String quotedMessageSender) {
-
-        this.quotedMessageSender = quotedMessageSender;
-    }
-
-    public String getQuotedMessageText() {
-
-        return quotedMessageText;
-    }
-
-    public void setQuotedMessageText(final String quotedMessageText) {
-
-        this.quotedMessageText = quotedMessageText;
-    }
-
-    public String getQuotedMessageTime() {
-
-        return quotedMessageTime;
-    }
-
-    public void setQuotedMessageTime(final String quotedMessageTime) {
-
-        this.quotedMessageTime = quotedMessageTime;
-    }
-
-    public String getSender() {
-
-        return sender;
-    }
-
-    public void setSender(final String sender) {
-
-        this.sender = sender;
     }
 
     public String getSubclass() {
@@ -102,14 +44,14 @@ public abstract sealed class BaseModel permits LinkModel, MessageModel, PictureM
         this.subclass = subclass;
     }
 
-    public String getTime() {
+    public byte getMessageType() {
 
-        return time;
+        return messageType;
     }
 
-    public void setTime(final String time) {
+    public void setMessageType(final byte messageType) {
 
-        this.time = time;
+        this.messageType = messageType;
     }
 
     public List<UserInteraction> getUserInteractions() {
@@ -121,5 +63,34 @@ public abstract sealed class BaseModel permits LinkModel, MessageModel, PictureM
 
         this.userInteractions = userInteractions;
     }
-    // getter & setter -- end
+
+    public String getSender() {
+
+        return sender;
+    }
+
+    public void setSender(final String sender) {
+
+        this.sender = sender;
+    }
+
+    public String getTime() {
+
+        return time;
+    }
+
+    public void setTime(final String time) {
+
+        this.time = time;
+    }
+
+    public QuoteModel<? extends BaseModel> getQuotedMessage() {
+
+        return quotedMessage;
+    }
+
+    public void setQuotedMessage(final QuoteModel<? extends BaseModel> quotedMessage) {
+
+        this.quotedMessage = quotedMessage;
+    }
 }

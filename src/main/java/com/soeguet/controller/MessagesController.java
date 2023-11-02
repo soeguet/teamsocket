@@ -10,6 +10,7 @@ import com.soeguet.model.dtos.DatabaseResult;
 import com.soeguet.model.dtos.ReactionToSocketDTO;
 import com.soeguet.model.dtos.UpdatedReactionModelDTO;
 import com.soeguet.model.jackson.BaseModel;
+import com.soeguet.model.jackson.LinkModel;
 import com.soeguet.model.jackson.MessageModel;
 import com.soeguet.model.jackson.PictureModel;
 import com.soeguet.util.MessageTypes;
@@ -112,9 +113,18 @@ public class MessagesController implements MessagesControllerInterface {
 
             processAndInitializePersistenceOfPictureMessage(message);
             return initializeRetrievalOfLastMessageFromDatabase();
+
+        } else if (baseModel instanceof LinkModel) {
+
+            databaseConnection.saveToDatabase(message);
+
+            return initializeRetrievalOfLastMessageFromDatabase();
+
+        } else {
+
+            throw new RuntimeException("unknown message type");
         }
 
-        return "";
     }
 
     @Override
