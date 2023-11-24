@@ -1,5 +1,5 @@
 # TeamSocket
-### Version: v1.0.1
+### Version: v1.0.4
 
 Welcome to the TeamSocket project! This repository is the backend to a Java Swing chat client that could run on local servers like a Raspberry Pi. It's a fun chat project akin to a walkie talkie. You can find the chat client at this link: [TeamChat](https://github.com/soeguet/teamchat).
 
@@ -34,7 +34,7 @@ This will compile the code, run the tests, and package the application. Once the
 java -jar target/teamsocket.jar ip=127.0.0.1 port=8100
 ```
 
-- Please replace `teamsocket-v1.0.1.jar` with your actual jar file name if it's different.
+- Please replace `teamsocket.jar` with your actual jar file name if it's different.
 - Please provide your own IP address and port number.
 
 Since all messages are persisted in a PostgreSQL Database, you will need one as well. Easiest way would be to use Docker. You can run the following command to start a PostgreSQL container:

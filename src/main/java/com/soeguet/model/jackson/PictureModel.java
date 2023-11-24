@@ -1,10 +1,28 @@
 package com.soeguet.model.jackson;
 
-import java.util.Arrays;
+public non-sealed class PictureModel extends BaseModel {
 
-public class PictureModel extends BaseModel {
+    // variables -- start
+    protected byte[] picture;
+    protected String description;
+    // variables -- end
 
-    private byte[] picture;
+    // constructors -- start
+    public PictureModel() {
+
+    }
+    // constructors -- end
+
+    // getter & setter -- start
+    public String getDescription() {
+
+        return description;
+    }
+
+    public void setDescription(final String description) {
+
+        this.description = description;
+    }
 
     public byte[] getPicture() {
 
@@ -15,18 +33,5 @@ public class PictureModel extends BaseModel {
 
         this.picture = picture;
     }
-
-    @Override
-    public String toString() {
-
-        return "PictureModel{" +
-                "picture=" + Arrays.toString(picture) +
-                ", id=" + id +
-                ", userInteractions=" + userInteractions +
-                ", localIp='" + localIp + '\'' +
-                ", sender='" + sender + '\'' +
-                ", time='" + time + '\'' +
-                ", message='" + message + '\'' +
-                '}';
-    }
+    // getter & setter -- end
 }

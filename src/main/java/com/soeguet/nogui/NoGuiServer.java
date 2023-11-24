@@ -1,6 +1,7 @@
 package com.soeguet.nogui;
 
 import com.soeguet.controller.interfaces.MessagesControllerInterface;
+import com.soeguet.model.dtos.UpdatedReactionModelDTO;
 import org.java_websocket.WebSocket;
 import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
@@ -160,6 +161,19 @@ public class NoGuiServer extends WebSocketServer {
      */
     @Override
     public synchronized void onMessage(WebSocket webSocket, ByteBuffer byteBuffer) {
+
+        //TODO reaction!
+//        //no need to broadcast if it is a reaction
+//        final byte[] byteData = byteBuffer.array();
+//
+//        if(messageController.checkByteArrayForReaction(byteData)){
+//
+//            UpdatedReactionModelDTO updatedModel = messageController.updateDatabaseEntryWithReaction(byteData);
+//            messageController.replaceDatabaseEntryWithUpdatedModel(updatedModel);
+//            messageController.sendUpdatedBaseModelToAllClients(updatedModel.databaseId());
+//
+//            return;
+//        }
 
         //TODO javadoc
         broadcast(byteBuffer);

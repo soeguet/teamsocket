@@ -1,15 +1,21 @@
 package com.soeguet.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soeguet.controller.interfaces.MessagesControllerInterface;
 import com.soeguet.database.interfaces.DatabaseConnectionController;
+import com.soeguet.model.UserInteraction;
 import com.soeguet.model.dtos.DatabaseResult;
+import com.soeguet.model.dtos.ReactionToSocketDTO;
+import com.soeguet.model.dtos.UpdatedReactionModelDTO;
 import com.soeguet.model.jackson.BaseModel;
+import com.soeguet.model.jackson.LinkModel;
 import com.soeguet.model.jackson.MessageModel;
 import com.soeguet.model.jackson.PictureModel;
 import com.soeguet.util.MessageTypes;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.logging.Level;
@@ -32,7 +38,8 @@ public class MessagesController implements MessagesControllerInterface {
 
      @return a Deque of JSON strings representing the serialized messages
 
-     @throws RuntimeException if there is an error retrieving or parsing the messages
+     @throws RuntimeException
+     if there is an error retrieving or parsing the messages
      */
     @Override
     public Deque<String> retrieveLast100Messages() {
@@ -40,7 +47,7 @@ public class MessagesController implements MessagesControllerInterface {
         Deque<DatabaseResult> messageQueue = databaseConnection.getAllFromDatabase();
         final Deque<String> jsonQueue = new ArrayDeque<>();
 
-        if (messageQueue.isEmpty()) return jsonQueue;
+        if (messageQueue.isEmpty()) {return jsonQueue;}
 
         do {
 
@@ -106,9 +113,101 @@ public class MessagesController implements MessagesControllerInterface {
 
             processAndInitializePersistenceOfPictureMessage(message);
             return initializeRetrievalOfLastMessageFromDatabase();
+
+        } else if (baseModel instanceof LinkModel) {
+
+            databaseConnection.saveToDatabase(message);
+
+            return initializeRetrievalOfLastMessageFromDatabase();
+
+        } else {
+
+            throw new RuntimeException("unknown message type");
         }
 
-        return "";
+    }
+
+    @Override
+    public boolean checkByteArrayForReaction(final byte[] array) {
+
+        //TODO implement this properly
+
+        JsonNode jsonNode;
+
+        try {
+
+            jsonNode = mapper.readTree(array);
+
+            return jsonNode.has("reactionName");
+
+        } catch (IOException e) {
+
+            logger.log(Level.SEVERE, "MessageController > checkByteArrayForReaction", e);
+            logger.log(Level.SEVERE, "could not parse byte array to JsonNode, might be something else", e.getMessage());
+
+            return false;
+        }
+    }
+
+    @Override
+    public UpdatedReactionModelDTO updateDatabaseEntryWithReaction(final byte[] byteData) {
+
+        ReactionToSocketDTO reactionToSocketDTO;
+
+        try {
+
+            reactionToSocketDTO = mapper.readValue(byteData, ReactionToSocketDTO.class);
+
+        } catch (IOException e) {
+
+            logger.log(Level.SEVERE, "MessageController > checkByteArrayForReaction", e);
+            logger.log(Level.SEVERE, "could not parse byte array to ReactionToSocketDTO, might be something else", e.getMessage());
+
+            throw new RuntimeException(e);
+        }
+
+        //fetch entry
+        String databaseEntry = databaseConnection.getMessageFromDatabase(reactionToSocketDTO.messageId());
+
+        //deserialize entry
+        BaseModel baseModel = deserializeBaseModel(databaseEntry);
+
+        baseModel.setMessageType(MessageTypes.INTERACTED);
+
+        //add reaction to entry
+        UserInteraction userInteraction = new UserInteraction(reactionToSocketDTO.clientName(), reactionToSocketDTO.reactionName());
+        baseModel.getUserInteractions().add(userInteraction);
+
+        return new UpdatedReactionModelDTO(reactionToSocketDTO.messageId(), baseModel);
+    }
+
+    @Override
+    public void replaceDatabaseEntryWithUpdatedModel(final UpdatedReactionModelDTO updatedModel) {
+
+        String serializedAndUpdatedBaseModel;
+
+        try {
+
+            serializedAndUpdatedBaseModel = mapper.writeValueAsString(updatedModel.baseModel());
+
+        } catch (JsonProcessingException e) {
+
+            logger.log(Level.SEVERE, "MessageController > replaceDatabaseEntryWithUpdatedModel", e);
+            logger.log(Level.SEVERE, "could not serialize updated model to JSON", e.getMessage());
+
+            throw new RuntimeException(e);
+        }
+
+        //save to the database
+        databaseConnection.replaceInDatabase(updatedModel.databaseId(), serializedAndUpdatedBaseModel);
+    }
+
+    @Override
+    public void sendUpdatedBaseModelToAllClients(final Long databaseId) {
+
+        final String updatedDatabaseEntry = databaseConnection.retrieveUpdatedEntry(databaseId);
+
+
     }
 
     /**
@@ -116,7 +215,8 @@ public class MessagesController implements MessagesControllerInterface {
 
      @return a JSON string representing the last message from the database
 
-     @throws RuntimeException if there is an error retrieving or parsing the message
+     @throws RuntimeException
+     if there is an error retrieving or parsing the message
      */
     private String initializeRetrievalOfLastMessageFromDatabase() {
 
@@ -148,9 +248,11 @@ public class MessagesController implements MessagesControllerInterface {
     /**
      Saves an image and its associated metadata to the database.
 
-     @param message the JSON string representing the picture model
+     @param message
+     the JSON string representing the picture model
 
-     @throws RuntimeException if there is an error saving the image to the database
+     @throws RuntimeException
+     if there is an error saving the image to the database
      */
     private void processAndInitializePersistenceOfPictureMessage(String message) {
 
@@ -176,11 +278,13 @@ public class MessagesController implements MessagesControllerInterface {
     /**
      Parses a JSON string representation of a message into a PictureModel object.
 
-     @param message the JSON string representing the message
+     @param message
+     the JSON string representing the message
 
      @return the parsed PictureModel object
 
-     @throws RuntimeException if there is an error parsing the JSON
+     @throws RuntimeException
+     if there is an error parsing the JSON
      */
     private PictureModel parseJsonToPictureModel(final String message) {
 
@@ -198,11 +302,13 @@ public class MessagesController implements MessagesControllerInterface {
     /**
      Serializes a PictureModel object to a JSON string.
 
-     @param pictureModel the PictureModel object to serialize
+     @param pictureModel
+     the PictureModel object to serialize
 
      @return the JSON string representing the serialized PictureModel object
 
-     @throws RuntimeException if there is an error parsing the JSON
+     @throws RuntimeException
+     if there is an error parsing the JSON
      */
     private String serializePictureModelToJson(final PictureModel pictureModel) {
 
@@ -220,11 +326,13 @@ public class MessagesController implements MessagesControllerInterface {
     /**
      Deserializes the message into a BaseModel object.
 
-     @param message the message to deserialize
+     @param message
+     the message to deserialize
 
      @return the deserialized BaseModel object
 
-     @throws RuntimeException if there is an error while deserializing the message
+     @throws RuntimeException
+     if there is an error while deserializing the message
      */
     private BaseModel deserializeBaseModel(final String message) {
 
@@ -232,7 +340,7 @@ public class MessagesController implements MessagesControllerInterface {
 
             BaseModel deserializedModel = mapper.readValue(message, BaseModel.class);
 
-            if (deserializedModel == null) throw new RuntimeException("deserializedModel is null");
+            if (deserializedModel == null) {throw new RuntimeException("deserializedModel is null");}
 
             return deserializedModel;
 
