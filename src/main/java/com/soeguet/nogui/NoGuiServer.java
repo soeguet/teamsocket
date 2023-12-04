@@ -1,18 +1,18 @@
 package com.soeguet.nogui;
 
-import com.soeguet.controller.interfaces.MessagesControllerInterface;
-import com.soeguet.model.dtos.UpdatedReactionModelDTO;
-import org.java_websocket.WebSocket;
-import org.java_websocket.framing.Framedata;
-import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.server.WebSocketServer;
-
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.java_websocket.WebSocket;
+import org.java_websocket.framing.Framedata;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
+
+import com.soeguet.controller.interfaces.MessagesControllerInterface;
 
 public class NoGuiServer extends WebSocketServer {
 
@@ -24,7 +24,6 @@ public class NoGuiServer extends WebSocketServer {
 
         super(new InetSocketAddress(properties.getProperty("ip"), Integer.parseInt(properties.getProperty("port"))));
         this.messageController = messageController;
-
     }
 
     /**
@@ -36,13 +35,21 @@ public class NoGuiServer extends WebSocketServer {
     @Override
     public void onWebsocketPing(WebSocket webSocket, Framedata framedata) {
 
+        //TODO find a better value for type
+        broadcastStopTypingToClients();
         super.onWebsocketPing(webSocket, framedata);
+    }
+
+    private void broadcastStopTypingToClients() {
+        String stopTypingIndicator = "{\"type\":\"send\"}";
+        broadcast(stopTypingIndicator.getBytes());
     }
 
     @Override
     public void onWebsocketPong(WebSocket webSocket, Framedata framedata) {
 
         //TODO
+        broadcastStopTypingToClients();
         if (webSocket.getAttachment() == null) webSocket.setAttachment(new String(framedata.getPayloadData().array()));
     }
 
